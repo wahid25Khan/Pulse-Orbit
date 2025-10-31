@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+
+# Guardrail: allow commits only for Kanban-related paths (unless explicitly bypassed)
+# Set ALLOW_ANY_COMMIT=1 to bypass in emergencies.
+
+if [ "$ALLOW_ANY_COMMIT" = "1" ]; then
+  echo "[pre-commit] Bypass enabled (ALLOW_ANY_COMMIT=1). Proceeding without path checks."
+  exit 0
+fi
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only)
+
+# If nothing staged, nothing to do
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+# Allowed path patterns (regex). Adjust as needed.
+# - LWC Kanban components
+# - Allow infra for this hook and .gitignore updates
+ALLOWED_REGEX='^lwc/kanbanBoard/|^lwc/kanbanUnified/|^lwc/statusHelper/|^lwc/toastHelper/|^classes/KanbanBoardController\\.cls(\\-meta\\.xml)?$|^staticresources/kanbanResources\\.(css|resource-meta\\.xml)$|^\.githooks/|^\.gitignore$'
+
+BLOCKED=0
+for f in $STAGED_FILES; do
+  echo "$f" | grep -Eq "$ALLOWED_REGEX"
+  if [ $? -ne 0 ]; then
+    echo "[pre-commit] Blocked: '$f' is outside allowed Kanban paths."
+    BLOCKED=1
+  fi
+done
+
+if [ $BLOCKED -ne 0 ]; then
+  cat <<EOM
+
+Only Kanban-related files can be committed right now.
+Allowed examples:
+  - lwc/kanbanBoard/**
+  - lwc/kanbanUnified/**
+  - lwc/statusHelper/**
+  - lwc/toastHelper/**
+  - classes/KanbanBoardController.cls(.meta)
+  - staticresources/kanbanResources.*
+
+If you must override, run with ALLOW_ANY_COMMIT=1 in your environment for a one-off commit.
+EOM
+  exit 1
+fi
+
+exit 0

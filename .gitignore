@@ -13,6 +13,7 @@ coverage/
 Thumbs.db
 .vscode/
 .history/
+.idea/
 
 # Logs
 *.log
@@ -20,3 +21,11 @@ Thumbs.db
 # Build/output
 build/
 dist/
+
+# Salesforce local/state folders
+.sfdx/
+.sf/
+.localdevserver/
+
+# Prevent accidentally tracking duplicate SFDX source tree
+force-app/

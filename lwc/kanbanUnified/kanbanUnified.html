@@ -1,0 +1,160 @@
+<template>
+  <div class="kanban-container slds-theme_default">
+    <!-- Top Navigation -->
+    <div class="slds-grid slds-gutters slds-p-around_small">
+      <div class="slds-col slds-size_1-of-2">
+        <div class="slds-button-group">
+          <button class="slds-button slds-button_neutral" onclick={toggleView}>
+            <lightning-icon
+              icon-name="utility:layout"
+              size="x-small"
+              class="slds-m-right_x-small"
+            ></lightning-icon>
+            <template if:true={isKanbanView}>Table View</template>
+            <template if:false={isKanbanView}>Kanban View</template>
+          </button>
+          <button class="slds-button slds-button_neutral">
+            <lightning-icon
+              icon-name="utility:filterList"
+              size="x-small"
+              class="slds-m-right_x-small"
+            ></lightning-icon>
+            Filter
+          </button>
+          <button class="slds-button slds-button_neutral">
+            <lightning-icon
+              icon-name="utility:settings"
+              size="x-small"
+              class="slds-m-right_x-small"
+            ></lightning-icon>
+            Settings
+          </button>
+          <button class="slds-button slds-button_neutral">
+            <lightning-icon
+              icon-name="utility:help"
+              size="x-small"
+              class="slds-m-right_x-small"
+            ></lightning-icon>
+            Help
+          </button>
+        </div>
+      </div>
+      <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+        <h1 class="slds-text-heading_medium">My Issues</h1>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div
+      class="slds-grid slds-gutters slds-p-horizontal_small slds-p-bottom_small"
+    >
+      <div class="slds-col slds-size_1-of-4">
+        <button
+          class="slds-button slds-button_neutral"
+          onclick={handleClearFilters}
+        >
+          <lightning-icon
+            icon-name="utility:close"
+            size="x-small"
+            class="slds-m-right_x-small"
+          ></lightning-icon>
+          Clear filters
+        </button>
+      </div>
+      <div class="slds-col slds-size_2-of-4">
+        <lightning-input
+          type="search"
+          label="Search"
+          placeholder="Search issues..."
+          variant="label-hidden"
+          class="search-input"
+          onchange={handleSearchChange}
+        ></lightning-input>
+      </div>
+    </div>
+
+    <!-- Kanban View -->
+    <template if:true={isKanbanView}>
+      <div class="slds-grid slds-wrap">
+        <template for:each={statusColumns} for:item="statusColumn">
+          <div
+            key={statusColumn.value}
+            class="kanban-column slds-col slds-size_1-of-5"
+          >
+            <h2>{statusColumn.label}</h2>
+            <template for:each={statusColumn.issues} for:item="issue">
+              <div
+                key={issue.Id}
+                class="slds-box slds-box_x-small slds-theme_default card-container slds-m-bottom_x-small"
+                data-id={issue.Id}
+                onclick={handleClick}
+                ondragstart={handleDragStart}
+              >
+                <div class="slds-grid slds-grid_vertical-align-center">
+                  <div class="slds-col">
+                    <p class="slds-text-heading_small">{issue.Name}</p>
+                  </div>
+                  <div class="slds-col slds-text-align_right">
+                    <span class={issue.priorityClass}></span>
+                  </div>
+                </div>
+                <p
+                  class="slds-text-body_regular slds-truncate slds-m-top_xx-small"
+                >
+                  {issue.Title__c}
+                </p>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Table View -->
+    <template if:false={isKanbanView}>
+      <div class="slds-table_header-fixed_container">
+        <div class="slds-scrollable_x" style="width: 100%">
+          <table
+            class="slds-table slds-table_bordered slds-table_header-fixed slds-table_resizable-cols slds-table_cell-buffer"
+          >
+            <thead>
+              <tr class="slds-line-height_reset">
+                <template for:each={columns} for:item="column">
+                  <th
+                    key={column.fieldName}
+                    scope="col"
+                    class="slds-is-resizable slds-is-sortable"
+                  >
+                    <div class="slds-truncate" title={column.label}>
+                      {column.label}
+                    </div>
+                  </th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={tableRows} for:item="issue">
+                <tr
+                  key={issue.Id}
+                  class="slds-hint-parent"
+                  data-id={issue.Id}
+                  onclick={handleRowClick}
+                  draggable="true"
+                  ondragstart={handleDragStart}
+                >
+                  <!-- Assuming 'issue.rowCells' is an array like [{ key: 'colField_issueId', value: 'Cell Value' }, ...] 
+                                        This data transformation needs to be done in the JavaScript file. -->
+                  <template for:each={issue.rowCells} for:item="cell">
+                    <td key={cell.key}>
+                      <div class="slds-truncate">{cell.value}</div>
+                    </td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

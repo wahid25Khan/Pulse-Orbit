@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TLG_Positive_Order_Number</fullName>
+    <active>true</active>
+    <description>Ensures the order number is a positive value to maintain proper column sequencing in the kanban board.</description>
+    <errorConditionFormula>TLG_Order_Number__c &lt;= 0</errorConditionFormula>
+    <errorDisplayField>TLG_Order_Number__c</errorDisplayField>
+    <errorMessage>Column Order must be a positive number (greater than 0). Use values like 10, 20, 30 for easy reordering.</errorMessage>
+</ValidationRule>

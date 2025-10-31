@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TLG_Order_Number__c</fullName>
+    <description>Determines the order in which status columns appear in the kanban board. Lower numbers appear first (left to right).</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Enter a number to set the column order in the kanban board. Columns with lower numbers appear first. Use increments of 10 (10, 20, 30) to allow easy reordering later.</inlineHelpText>
+    <label>Column Order</label>
+    <precision>18</precision>
+    <required>true</required>
+    <scale>0</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TLG_Contributors</fullName>
+    <active>true</active>
+    <label>Contributors</label>
+    <picklistValues>
+        <picklist>TLG_Roll__c</picklist>
+        <values>
+            <fullName>Account Manager</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Pre-Sales Consultant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Project Manager</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>TLG_Section__c</picklist>
+        <values>
+            <fullName>Inbox</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Later</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Today</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Upcoming</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+</RecordType>

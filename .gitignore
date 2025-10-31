@@ -1,0 +1,22 @@
+# Only keep Kanban-related assets in this repo
+# Ignore markdown as requested
+*.md
+
+# Node and tooling
+node_modules/
+.eslintcache
+.pmdCache
+coverage/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.history/
+
+# Logs
+*.log
+
+# Build/output
+build/
+dist/

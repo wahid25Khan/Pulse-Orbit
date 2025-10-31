@@ -1,0 +1,13 @@
+/* Hide Salesforce Lightning Page Header */
+.slds-page-header {
+    display: none !important;
+}
+
+.oneAppLayoutHost .slds-page-header {
+    display: none !important;
+}
+
+/* Remove top padding */
+.flexipageComponent {
+    padding-top: 0 !important;
+}

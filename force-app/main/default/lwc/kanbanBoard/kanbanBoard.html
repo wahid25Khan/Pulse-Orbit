@@ -12,7 +12,6 @@
         <button class={navClassDashboard} data-key="dashboard" onclick={handleNavClick} title="Dashboards">
           <lightning-icon icon-name="utility:dashboard" size="x-small"></lightning-icon>
           <span>Dashboards</span>
-          <span class="badge badge-soon">Soon</span>
         </button>
         <button class={navClassKanban} data-key="kanban" onclick={handleNavClick} title="Kanban Board">
           <lightning-icon icon-name="standard:kanban" size="x-small"></lightning-icon>
@@ -44,9 +43,19 @@
     </aside>
 
     <div class="main-content">
-      <div class="kanban-board-container">
-        <div class="kanban-columns">
-          <template for:each={columns} for:item="column">
+      
+      <!-- Dashboard View -->
+      <template if:true={isDashboardView}>
+        <div class="dashboard-container">
+          <c-task-timeline></c-task-timeline>
+        </div>
+      </template>
+
+      <!-- Kanban Board View -->
+      <template if:true={isKanbanView}>
+        <div class="kanban-board-container">
+          <div class="kanban-columns">
+            <template for:each={columns} for:item="column">
             <div key={column.id} class="kanban-column" data-column-id={column.id} data-collapsed={column.isCollapsed}
               data-status={column.statusValue} onclick={handleColumnClick} title={column.tooltipTitle}>
               <div class="column-header">
@@ -111,6 +120,9 @@
           </template>
         </div>
       </div>
+      </template>
+      <!-- End Kanban Board View -->
+
     </div>
 
     <!-- Unified Drawer - handles Filters, New Task, and Task Details -->

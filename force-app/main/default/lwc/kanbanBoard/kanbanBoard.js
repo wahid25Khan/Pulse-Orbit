@@ -225,6 +225,14 @@ export default class KanbanBoard extends LightningElement {
     return this.selectedNav === "dashboard";
   }
 
+  get isKanbanView() {
+    return this.selectedNav === "kanban";
+  }
+
+  get isTasksView() {
+    return this.selectedNav === "tasks";
+  }
+
   get computedRootClass() {
     let classes = ["kanban-root"];
     if (this.isDarkMode) classes.push("dark-mode");
@@ -690,11 +698,15 @@ export default class KanbanBoard extends LightningElement {
     const key = event.currentTarget?.dataset?.key;
     if (!key) return;
     this.selectedNav = key;
-    if (key === "dashboard" || key === "tasks") {
-      // Not yet implemented
-      showToast(this, "Info", "This section is coming soon.", "info");
+    
+    // Navigate to the selected view
+    if (key === "dashboard") {
+      // Dashboard view with timeline
+    } else if (key === "tasks") {
+      // Task management view (coming soon)
+      showToast(this, "Info", "Task management section is coming soon.", "info");
     } else if (key === "kanban") {
-      // No-op; already on Kanban
+      // Kanban board view
     }
   }
 

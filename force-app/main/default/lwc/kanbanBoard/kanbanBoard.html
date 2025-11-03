@@ -47,7 +47,7 @@
       <!-- Dashboard View -->
       <template if:true={isDashboardView}>
         <div class="dashboard-container">
-          <c-task-timeline></c-task-timeline>
+          <c-task-timeline tasks={_allTasks}></c-task-timeline>
         </div>
       </template>
 
@@ -337,8 +337,8 @@
                       <lightning-icon icon-name="utility:task" size="x-small"></lightning-icon>
                       Details
                     </div>
-                    <button class="header-toggle-btn" onclick={handleToggleTimeLog} 
-                            title="Toggle Time Logging" aria-pressed={showTimeLogSection}>
+                    <button class="header-toggle-btn" onclick={handleToggleTimeLog} title="Toggle Time Logging"
+                      aria-pressed={showTimeLogSection}>
                       <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
                       <span>Log Time</span>
                     </button>
@@ -460,48 +460,48 @@
                         <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
                         Logged Time
                       </div>
-                    <div class="filter-form-group grid-2col">
-                      <lightning-input type="number" name="Completion__c" label="Completion (%)" min="0" max="100"
-                        value={logTimeData.Completion__c} onchange={handleLogFieldChange}
-                        message-when-range-overflow="Max 100" message-when-range-underflow="Min 0"
-                        class="filter-input"></lightning-input>
-                      <lightning-input type="date" name="TLG_Date_Record__c" label="Date"
-                        value={logTimeData.TLG_Date_Record__c} onchange={handleLogFieldChange}
-                        class="filter-input"></lightning-input>
-                    </div>
-                    <div class="filter-form-group">
-                      <label class="slds-form-element__label" for="timeSpentField">Time Spent (h.mm)</label>
-                      <div class="time-stepper">
-                        <button class="time-btn" data-dir="minus" onclick={handleTimeStep} type="button"
-                          aria-label="Minus 15 minutes">
-                          <lightning-icon icon-name="utility:dash" size="xx-small"></lightning-icon>
-                        </button>
-                        <lightning-input id="timeSpentField" type="text" name="TLG_Time_Spent__c"
-                          value={logTimeData.TLG_Time_Spent__c} onchange={handleTimeSpentChange} class="filter-input"
-                          style="max-width: 120px;"></lightning-input>
-                        <button class="time-btn" data-dir="plus" onclick={handleTimeStep} type="button"
-                          aria-label="Plus 15 minutes">
-                          <lightning-icon icon-name="utility:add" size="xx-small"></lightning-icon>
+                      <div class="filter-form-group grid-2col">
+                        <lightning-input type="number" name="Completion__c" label="Completion (%)" min="0" max="100"
+                          value={logTimeData.Completion__c} onchange={handleLogFieldChange}
+                          message-when-range-overflow="Max 100" message-when-range-underflow="Min 0"
+                          class="filter-input"></lightning-input>
+                        <lightning-input type="date" name="TLG_Date_Record__c" label="Date"
+                          value={logTimeData.TLG_Date_Record__c} onchange={handleLogFieldChange}
+                          class="filter-input"></lightning-input>
+                      </div>
+                      <div class="filter-form-group">
+                        <label class="slds-form-element__label" for="timeSpentField">Time Spent (h.mm)</label>
+                        <div class="time-stepper">
+                          <button class="time-btn" data-dir="minus" onclick={handleTimeStep} type="button"
+                            aria-label="Minus 15 minutes">
+                            <lightning-icon icon-name="utility:dash" size="xx-small"></lightning-icon>
+                          </button>
+                          <lightning-input id="timeSpentField" type="text" name="TLG_Time_Spent__c"
+                            value={logTimeData.TLG_Time_Spent__c} onchange={handleTimeSpentChange} class="filter-input"
+                            style="max-width: 120px;"></lightning-input>
+                          <button class="time-btn" data-dir="plus" onclick={handleTimeStep} type="button"
+                            aria-label="Plus 15 minutes">
+                            <lightning-icon icon-name="utility:add" size="xx-small"></lightning-icon>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="filter-form-group full-width">
+                        <lightning-input type="text" name="TLG_Description__c" label="Work Description"
+                          value={logTimeData.TLG_Description__c} onchange={handleLogFieldChange}
+                          class="filter-input"></lightning-input>
+                      </div>
+                      <div class="filter-form-group grid-2col">
+                        <lightning-input type="text" label="Estimated Hours" value={selectedTaskDetails.estimatedHours}
+                          disabled class="filter-input"></lightning-input>
+                        <lightning-input type="text" label="Remaining (h.mm)" value={remainingEstimateDisplay}
+                          formatter="number" disabled class="filter-input" data-is-remaining></lightning-input>
+                      </div>
+                      <div class="filter-form-group">
+                        <button class="filter-btn filter-btn-primary" onclick={handleSubmitLogTime}>
+                          <lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon>
+                          Log Time
                         </button>
                       </div>
-                    </div>
-                    <div class="filter-form-group full-width">
-                      <lightning-input type="text" name="TLG_Description__c" label="Work Description"
-                        value={logTimeData.TLG_Description__c} onchange={handleLogFieldChange}
-                        class="filter-input"></lightning-input>
-                    </div>
-                    <div class="filter-form-group grid-2col">
-                      <lightning-input type="text" label="Estimated Hours" value={selectedTaskDetails.estimatedHours}
-                        disabled class="filter-input"></lightning-input>
-                      <lightning-input type="text" label="Remaining (h.mm)" value={remainingEstimateDisplay}
-                        formatter="number" disabled class="filter-input" data-is-remaining></lightning-input>
-                    </div>
-                    <div class="filter-form-group">
-                      <button class="filter-btn filter-btn-primary" onclick={handleSubmitLogTime}>
-                        <lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon>
-                        Log Time
-                      </button>
-                    </div>
                     </template>
                     <!-- End Logged Time Section -->
 

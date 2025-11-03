@@ -1,0 +1,17 @@
+.color-cell {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.color-cell .hex {
+    width: 8rem;
+}
+
+.color-cell .picker {
+    width: 2.5rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+}

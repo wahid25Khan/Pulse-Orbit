@@ -1,0 +1,275 @@
+.kanban-card {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 220px;
+    border-radius: 28px;
+    overflow: hidden;
+    padding: 1px;
+    cursor: grab;
+    user-select: none;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+    background: linear-gradient(145deg, #ff8a3d, #5824ff);
+}
+
+.kanban-card:active {
+    cursor: grabbing;
+}
+
+.kanban-card.dark-theme {
+    background: linear-gradient(150deg, #ff7a2f, #1e1b4b);
+}
+
+.kanban-card.light-theme {
+    background: var(--kanban-card-light-gradient, linear-gradient(140deg, #5ec9ff, #2563eb));
+}
+
+.kanban-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
+}
+
+.card-sheen {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25), transparent 60%);
+    pointer-events: none;
+}
+
+.card-inner {
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(155deg, rgba(17, 17, 28, 0.78), rgba(11, 12, 20, 0.92));
+    border-radius: 26px;
+    color: #f9fafb;
+    padding: 1.35rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 1rem;
+}
+
+.light-theme .card-inner {
+    background: linear-gradient(155deg, rgba(240, 249, 255, 0.92), rgba(221, 243, 255, 0.62));
+    color: #0f172a;
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.chip-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    cursor: grab;
+}
+
+.chip lightning-icon {
+    --sds-c-icon-color-foreground-default: currentColor;
+}
+
+.priority-chip {
+    cursor: default;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.priority-chip.priority-high {
+    background: rgba(239, 68, 68, 0.9);
+    color: #fff;
+}
+
+.priority-chip.priority-medium {
+    background: rgba(34, 197, 94, 0.85);
+    color: #0f172a;
+}
+
+.priority-chip.priority-low {
+    background: rgba(250, 204, 21, 0.9);
+    color: #0f172a;
+}
+
+.priority-chip.priority-default {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.light-theme .chip {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+.light-theme .priority-chip.priority-high {
+    background: rgba(220, 38, 38, 0.92);
+    color: #fff;
+}
+
+.light-theme .priority-chip.priority-medium {
+    background: rgba(16, 185, 129, 0.92);
+    color: #022c22;
+}
+
+.light-theme .priority-chip.priority-low {
+    background: rgba(250, 204, 21, 0.92);
+    color: #78350f;
+}
+
+.circle-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    color: inherit;
+    transition: transform 120ms ease;
+}
+
+.light-theme .circle-btn {
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.circle-btn:hover {
+    transform: translateY(-2px);
+}
+
+.metric-block {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.metric-value {
+    font-size: 3.25rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+.metric-icon {
+    --sds-c-icon-color-foreground-default: currentColor;
+    opacity: 0.8;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.card-headline {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.card-text {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    opacity: 0.85;
+    max-height: 3.2rem;
+    overflow: hidden;
+}
+
+.light-theme .card-text {
+    color: #475569;
+}
+
+.card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+}
+
+.avatar-stack {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.avatar-slot {
+    display: inline-flex;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.18);
+    color: inherit;
+    overflow: hidden;
+}
+
+.avatar.photo {
+    background: transparent;
+}
+
+.avatar.photo .avatar-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.light-theme .avatar {
+    background: rgba(37, 99, 235, 0.12);
+    color: #0f172a;
+}
+
+.avatar.placeholder {
+    font-size: 1rem;
+    opacity: 0.6;
+}
+
+.timeline-dots {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.nav-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    transition: background 120ms ease, width 120ms ease;
+}
+
+.nav-dot.active {
+    width: 16px;
+    background: #ffffff;
+}
+
+.light-theme .nav-dot {
+    background: rgba(37, 99, 235, 0.25);
+}
+
+.light-theme .nav-dot.active {
+    background: #0f172a;
+}

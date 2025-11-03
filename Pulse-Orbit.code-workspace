@@ -1,0 +1,23 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "files.exclude": {
+            "**/.git": false,
+            "**/node_modules": true
+        },
+        "search.exclude": {
+            "**/.git": true,
+            "**/node_modules": true
+        },
+        "xml.preferences.showSchemaDocumentationType": "none"
+    },
+    "extensions": {
+        "recommendations": [
+            "salesforce.salesforcedx-vscode-lwc"
+        ]
+    }
+}

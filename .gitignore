@@ -1,7 +1,3 @@
-# Only keep Kanban-related assets in this repo
-# Ignore markdown as requested
-*.md
-
 # Node and tooling
 node_modules/
 .eslintcache
@@ -27,5 +23,8 @@ dist/
 .sf/
 .localdevserver/
 
-# Prevent accidentally tracking duplicate SFDX source tree
-force-app/
+# Backup files
+*.backup
+
+# Ignore test output
+test-results/

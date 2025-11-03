@@ -1,0 +1,98 @@
+<template>
+    <section class="timeline-card slds-card">
+        <header class="slds-card__header slds-grid slds-grid_vertical-align-center slds-p-around_small">
+            <div class="slds-media slds-media_center">
+                <div class="slds-media__body">
+                    <h2 class="slds-text-heading_small">Active Tasks</h2>
+                    <p class="slds-text-color_weak slds-m-top_xx-small" if:true={selectedDate}>{dateDisplay}</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="date-control slds-m-right_medium">
+                    <lightning-input type="date" name="selectedDate" value={selectedDateISO}
+                        onchange={handleDateChange}></lightning-input>
+                </div>
+                <lightning-button-group>
+                    <lightning-button variant={viewVariantDay} label="Day" onclick={handleViewDay}></lightning-button>
+                    <lightning-button variant={viewVariantWeek} label="Week"
+                        onclick={handleViewWeek}></lightning-button>
+                    <lightning-button variant={viewVariantMonth} label="Month"
+                        onclick={handleViewMonth}></lightning-button>
+                    <lightning-button variant={viewVariantYear} label="2025"
+                        onclick={handleViewYear}></lightning-button>
+                </lightning-button-group>
+            </div>
+        </header>
+
+        <div class="controls slds-p-horizontal_small slds-p-vertical_x-small slds-border_bottom">
+            <label class="slds-form-element__label">Group by:</label>
+            <lightning-button-group>
+                <lightning-button variant={groupVariantCategory} label="Category"
+                    onclick={handleGroupByCategory}></lightning-button>
+                <lightning-button variant={groupVariantStatus} label="Status"
+                    onclick={handleGroupByStatus}></lightning-button>
+                <lightning-button variant={groupVariantTeam} label="Team"
+                    onclick={handleGroupByTeam}></lightning-button>
+                <lightning-button variant={groupVariantAssignee} label="Assignee"
+                    onclick={handleGroupByAssignee}></lightning-button>
+            </lightning-button-group>
+        </div>
+
+        <div class="timeline slds-p-horizontal_small">
+            <div class="lane-col">
+                <div class="lane-header">
+                    <span class="time-label">Time Range:</span>
+                    <div class="time-inputs">
+                        <lightning-input type="text" name="startHour" value={startHourDisplay} maxlength="5"
+                            onchange={handleStartHourChange} class="small-input"></lightning-input>
+                        <span class="dash">→</span>
+                        <lightning-input type="text" name="endHour" value={endHourDisplay} maxlength="5"
+                            onchange={handleEndHourChange} class="small-input"></lightning-input>
+                    </div>
+                </div>
+                <template for:each={lanes} for:item="lane">
+                    <div key={lane.id} class="lane-label">
+                        <span>{lane.label}</span>
+                    </div>
+                </template>
+            </div>
+
+            <div class="grid-col">
+                <div class="time-scale">
+                    <template for:each={ticks} for:item="t">
+                        <div key={t.key} class="tick" style="--position: {t.percent}"><span>{t.label}</span></div>
+                    </template>
+                </div>
+
+                <template for:each={lanes} for:item="lane">
+                    <div key={lane.id} class="lane-row">
+                        <template for:each={lane.bars} for:item="bar">
+                            <div key={bar.id} class="bar"
+                                style="--position: {bar.position}; --width: {bar.width}; --gradient: {bar.color};"
+                                title={bar.title}>
+                                <div class="bar-leading">
+                                    <div class="avatar-stack">
+                                        <template for:each={bar.avatars} for:item="a">
+                                            <img key={a.key} class="avatar" src={a.photoUrl} alt={a.title}
+                                                title={a.title} if:true={a.photoUrl} />
+                                            <div key={a.key} class="avatar avatar-placeholder" style="--hue: {a.hue}"
+                                                title={a.title} if:false={a.photoUrl}></div>
+                                        </template>
+                                    </div>
+                                    <span class="bar-label">{bar.label}</span>
+                                </div>
+                                <span class="progress-pill">{bar.progressLabel}</span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <template if:true={isEmpty}>
+            <div class="slds-p-around_medium slds-text-align_center slds-text-color_weak">
+                No tasks for the selected date and filters. Adjust settings or add tasks to see the timeline.
+            </div>
+        </template>
+    </section>
+</template>

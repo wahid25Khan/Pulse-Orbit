@@ -1,0 +1,18 @@
+**/jsconfig.json
+**/.eslintrc.json
+
+# Tooling and local files
+**/.vscode/**
+**/.sfdx/**
+**/.localdevserver/**
+**/.history/**
+**/.github/**
+**/node_modules/**
+**/*.log
+
+# Tests and build-only assets
+**/lwc/*/__tests__/**
+
+# Formatting configs
+**/.prettierrc
+**/.prettierignore

@@ -1,0 +1,14 @@
+{
+  "name": "pulse-orbit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Salesforce LWC Kanban board - test setup",
+  "scripts": {
+    "test": "sfdx-lwc-jest",
+    "test:watch": "sfdx-lwc-jest --watch",
+    "test:coverage": "sfdx-lwc-jest --coverage"
+  },
+  "devDependencies": {
+    "@salesforce/sfdx-lwc-jest": "latest"
+  }
+}

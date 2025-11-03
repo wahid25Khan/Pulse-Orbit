@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Pulse Orbit</label>
+    <description>Pulse Orbit app with Kanban Board and related object tabs.</description>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <defaultLandingTab>Kanban_Board</defaultLandingTab>
+    <tabs>Kanban_Board</tabs>
+    <tabs>TLG_Task__c</tabs>
+    <tabs>TLG_TaskFeed__c</tabs>
+    <tabs>TLG_Team_Status__c</tabs>
+    <tabs>TLG_Kanban_Board_Config__c</tabs>
+    <tabs>standard-Dashboard</tabs>
+</CustomApplication>

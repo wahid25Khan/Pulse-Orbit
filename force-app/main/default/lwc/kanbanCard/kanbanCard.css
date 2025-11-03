@@ -21,18 +21,18 @@
 }
 
 .kanban-card.light-theme {
-    background: var(--kanban-card-light-gradient, linear-gradient(140deg, #5ec9ff, #2563eb));
+    background: var(--kanban-card-light-gradient, linear-gradient(140deg, #e6c896, #c89960));
 }
 
 .kanban-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 16px 32px rgba(139, 99, 46, 0.15);
 }
 
 .card-sheen {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25), transparent 60%);
+    background: radial-gradient(circle at 20% 20%, rgba(255, 252, 245, 0.35), transparent 60%);
     pointer-events: none;
 }
 
@@ -50,8 +50,8 @@
 }
 
 .light-theme .card-inner {
-    background: linear-gradient(155deg, rgba(240, 249, 255, 0.92), rgba(221, 243, 255, 0.62));
-    color: #0f172a;
+    background: linear-gradient(155deg, rgba(255, 253, 248, 0.95), rgba(250, 244, 233, 0.75));
+    color: #3d2f1f;
 }
 
 .card-top {
@@ -109,23 +109,23 @@
 }
 
 .light-theme .chip {
-    background: rgba(15, 23, 42, 0.08);
-    color: #0f172a;
+    background: rgba(200, 153, 96, 0.15);
+    color: #3d2f1f;
 }
 
 .light-theme .priority-chip.priority-high {
-    background: rgba(220, 38, 38, 0.92);
+    background: rgba(201, 124, 99, 0.92);
     color: #fff;
 }
 
 .light-theme .priority-chip.priority-medium {
-    background: rgba(16, 185, 129, 0.92);
-    color: #022c22;
+    background: rgba(122, 158, 92, 0.92);
+    color: #1f2912;
 }
 
 .light-theme .priority-chip.priority-low {
-    background: rgba(250, 204, 21, 0.92);
-    color: #78350f;
+    background: rgba(230, 200, 150, 0.92);
+    color: #5c4a2e;
 }
 
 .circle-btn {
@@ -142,7 +142,7 @@
 }
 
 .light-theme .circle-btn {
-    background: rgba(37, 99, 235, 0.12);
+    background: rgba(212, 165, 116, 0.18);
 }
 
 .circle-btn:hover {
@@ -190,7 +190,7 @@
 }
 
 .light-theme .card-text {
-    color: #475569;
+    color: #6b5640;
 }
 
 .card-bottom {
@@ -237,8 +237,8 @@
 }
 
 .light-theme .avatar {
-    background: rgba(37, 99, 235, 0.12);
-    color: #0f172a;
+    background: rgba(212, 165, 116, 0.18);
+    color: #3d2f1f;
 }
 
 .avatar.placeholder {
@@ -267,9 +267,9 @@
 }
 
 .light-theme .nav-dot {
-    background: rgba(37, 99, 235, 0.25);
+    background: rgba(212, 165, 116, 0.3);
 }
 
 .light-theme .nav-dot.active {
-    background: #0f172a;
+    background: #c89960;
 }

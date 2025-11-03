@@ -29,19 +29,19 @@
   --bp-2xl: 1400px;
   --bp-3xl: 1920px;
 
-  /* Theme Colors - Light Mode */
-  --color-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  --color-text: #1f2937;
-  --color-text-secondary: #4b5563;
-  --color-surface: #ffffff;
-  --color-surface-hover: #f3f4f6;
-  --color-border: rgba(229, 231, 235, 0.5);
-  --color-shadow: rgba(0, 0, 0, 0.05);
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-accent: #8b5cf6;
-  --color-success: #10b981;
-  --color-error: #ef4444;
+  /* Theme Colors - Light Mode - Milky Golden */
+  --color-bg: linear-gradient(135deg, #fdfbf7 0%, #f5ede0 100%);
+  --color-text: #3d2f1f;
+  --color-text-secondary: #6b5640;
+  --color-surface: #fffdf8;
+  --color-surface-hover: #faf6ed;
+  --color-border: rgba(218, 186, 140, 0.3);
+  --color-shadow: rgba(139, 99, 46, 0.08);
+  --color-primary: #d4a574;
+  --color-primary-hover: #c89960;
+  --color-accent: #b8935f;
+  --color-success: #7a9e5c;
+  --color-error: #c97c63;
 
   /* Theme Transition */
   transition:

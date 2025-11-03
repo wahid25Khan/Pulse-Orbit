@@ -233,6 +233,10 @@ export default class KanbanBoard extends LightningElement {
     return classes.join(" ");
   }
 
+  get darkModeTitle() {
+    return this.isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
+  }
+
   get hasActiveFilters() {
     return this.activeFilterCount > 0;
   }

@@ -27,6 +27,20 @@
 
       <div class="sidebar-divider" role="separator" aria-label="Theme Controls"></div>
 
+      <!-- Theme Toggle -->
+      <div class="sidebar-footer">
+        <button class="theme-toggle-btn" onclick={handleToggleDarkMode} title={darkModeTitle}>
+          <template if:true={isDarkMode}>
+            <lightning-icon icon-name="utility:light_bulb" size="x-small"></lightning-icon>
+            <span>Light Mode</span>
+          </template>
+          <template if:false={isDarkMode}>
+            <lightning-icon icon-name="utility:moon" size="x-small"></lightning-icon>
+            <span>Dark Mode</span>
+          </template>
+        </button>
+      </div>
+
     </aside>
 
     <div class="main-content">

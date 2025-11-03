@@ -5,9 +5,8 @@
         <div class="card-inner">
             <header class="card-top">
                 <div class="chip-row">
-                    <button class="chip" onmousedown={handleDragHandleMouseDown}
+                    <button class="chip status-chip" onmousedown={handleDragHandleMouseDown}
                         ontouchstart={handleDragHandleMouseDown} title="Drag task" aria-label="Drag task">
-                        <lightning-icon icon-name="utility:move" size="xx-small"></lightning-icon>
                         <span>{statusLabel}</span>
                     </button>
                     <template if:true={priorityLabel}>

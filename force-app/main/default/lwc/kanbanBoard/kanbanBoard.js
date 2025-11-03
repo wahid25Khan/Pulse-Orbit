@@ -142,6 +142,7 @@ export default class KanbanBoard extends LightningElement {
   @track mentionResults = [];
   @api selectedMentions = [];
   @track taskDrawerFocus = "details";
+  @track showTimeLogSection = false;
 
   // Internal state for drag and filters
   _draggedCardId = null;
@@ -429,12 +430,29 @@ export default class KanbanBoard extends LightningElement {
       };
       await this.refreshTimeAggregates();
       this.updateRemainingEstimate();
+      
+      // Set initial time log section visibility based on focus mode
+      this.showTimeLogSection = this.isLogTimeFocus;
+      
       if (this.isLogTimeFocus) {
         this.scrollLogTimeSectionIntoView();
       }
     } catch (error) {
       console.error("Error opening task drawer:", error);
       showToast(this, "Error", "Unable to load task details.", "error");
+    }
+  }
+
+  // Toggle time logging section visibility
+  handleToggleTimeLog(event) {
+    event.stopPropagation();
+    this.showTimeLogSection = !this.showTimeLogSection;
+    
+    // If showing time log section, scroll it into view
+    if (this.showTimeLogSection) {
+      setTimeout(() => {
+        this.scrollLogTimeSectionIntoView();
+      }, 100);
     }
   }
 
@@ -698,7 +716,7 @@ export default class KanbanBoard extends LightningElement {
     const key = event.currentTarget?.dataset?.key;
     if (!key) return;
     this.selectedNav = key;
-    
+
     // Navigate to the selected view
     if (key === "dashboard") {
       // Dashboard view with timeline

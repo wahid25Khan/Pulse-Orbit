@@ -122,14 +122,17 @@ export default class KanbanCard extends LightningElement {
     }
 
     get assigneeList() {
-        const rawList = Array.isArray(this.issue?.assignees)
+        const people = new Map(); // Use Map to avoid duplicates by ID/name
+        
+        // Add assigned users
+        const rawAssignees = Array.isArray(this.issue?.assignees)
             ? this.issue.assignees
             : [];
         const fallbackName = this.issue?.assignedToName || this.issue?.assignedTo;
 
-        const list = rawList.length ? rawList : fallbackName ? [fallbackName] : [];
-
-        return list.slice(0, 3).map((item, index) => {
+        const assigneeList = rawAssignees.length ? rawAssignees : fallbackName ? [fallbackName] : [];
+        
+        assigneeList.forEach((item, index) => {
             const normalized = typeof item === 'string' ? { name: item } : item || {};
             const name =
                 normalized.name ||
@@ -137,20 +140,40 @@ export default class KanbanCard extends LightningElement {
                 normalized.label ||
                 fallbackName ||
                 'Unassigned';
-            const photo =
-                normalized.photoUrl ||
-                normalized.avatarUrl ||
-                normalized.imageUrl ||
-                normalized.photo;
-
-            return {
-                key: `assignee-${index}`,
-                name,
-                initials: this.buildInitials(name),
-                photo: photo || '',
-                hasPhoto: Boolean(photo)
-            };
+            const id = normalized.Id || normalized.id || `assignee-${name}-${index}`;
+            
+            if (!people.has(id)) {
+                people.set(id, {
+                    key: id,
+                    name,
+                    initials: this.buildInitials(name),
+                    photo: normalized.photoUrl || normalized.avatarUrl || normalized.imageUrl || normalized.photo || '',
+                    hasPhoto: Boolean(normalized.photoUrl || normalized.avatarUrl || normalized.imageUrl || normalized.photo),
+                    role: 'assignee'
+                });
+            }
         });
+
+        // Add contributors from taskFeed
+        const taskFeeds = Array.isArray(this.issue?.taskFeeds) ? this.issue.taskFeeds : [];
+        taskFeeds.forEach((feed, index) => {
+            const contributorName = feed.createdByName || feed.CreatedBy?.Name;
+            const contributorId = feed.CreatedById || feed.CreatedBy?.Id || `contributor-${contributorName}-${index}`;
+            
+            if (contributorName && contributorId && !people.has(contributorId)) {
+                people.set(contributorId, {
+                    key: contributorId,
+                    name: contributorName,
+                    initials: this.buildInitials(contributorName),
+                    photo: feed.CreatedBy?.SmallPhotoUrl || feed.createdByPhoto || '',
+                    hasPhoto: Boolean(feed.CreatedBy?.SmallPhotoUrl || feed.createdByPhoto),
+                    role: 'contributor'
+                });
+            }
+        });
+
+        // Return first 3 people (assignees prioritized first)
+        return Array.from(people.values()).slice(0, 3);
     }
 
     get hasAssignees() {

@@ -21,7 +21,7 @@
 }
 
 .kanban-card.light-theme {
-    background: var(--kanban-card-light-gradient, linear-gradient(140deg, #e6c896, #c89960));
+    background: var(--kanban-card-light-gradient, linear-gradient(140deg, #ffffff, #f5e6d3, #e6c896));
 }
 
 .kanban-card:hover {
@@ -82,6 +82,13 @@
 
 .chip lightning-icon {
     --sds-c-icon-color-foreground-default: currentColor;
+}
+
+.status-chip {
+    min-width: 80px;
+    justify-content: center;
+    text-align: center;
+    font-weight: 500;
 }
 
 .priority-chip {

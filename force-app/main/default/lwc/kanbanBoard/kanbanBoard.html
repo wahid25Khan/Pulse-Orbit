@@ -43,7 +43,7 @@
     </aside>
 
     <div class="main-content">
-      
+
       <!-- Dashboard View -->
       <template if:true={isDashboardView}>
         <div class="dashboard-container">
@@ -56,70 +56,70 @@
         <div class="kanban-board-container">
           <div class="kanban-columns">
             <template for:each={columns} for:item="column">
-            <div key={column.id} class="kanban-column" data-column-id={column.id} data-collapsed={column.isCollapsed}
-              data-status={column.statusValue} onclick={handleColumnClick} title={column.tooltipTitle}>
-              <div class="column-header">
-                <div class="column-info">
-                  <div class="column-title-row">
-                    <h3 class="column-title">
-                      <span class="title-full">{column.title}</span>
-                      <span class="title-short">{column.shortTitle}</span>
-                    </h3>
-                    <span class="column-task-count">({column.cardCount})</span>
-                    <template if:true={column.displayOrder}>
-                      <span class="column-order-indicator">#{column.displayOrder}</span>
-                    </template>
+              <div key={column.id} class="kanban-column" data-column-id={column.id} data-collapsed={column.isCollapsed}
+                data-status={column.statusValue} onclick={handleColumnClick} title={column.tooltipTitle}>
+                <div class="column-header">
+                  <div class="column-info">
+                    <div class="column-title-row">
+                      <h3 class="column-title">
+                        <span class="title-full">{column.title}</span>
+                        <span class="title-short">{column.shortTitle}</span>
+                      </h3>
+                      <span class="column-task-count">({column.cardCount})</span>
+                      <template if:true={column.displayOrder}>
+                        <span class="column-order-indicator">#{column.displayOrder}</span>
+                      </template>
+                    </div>
+                  </div>
+                  <div class="column-actions">
+                    <button class="column-action-btn collapse-btn" onclick={handleColumnCollapseToggle}
+                      data-column-id={column.id} title="Toggle column visibility" aria-expanded={column.ariaExpanded}>
+                      <template if:true={column.isCollapsed}>
+                        <lightning-icon icon-name="utility:chevronright" size="xx-small"
+                          aria-hidden="true"></lightning-icon>
+                        <span class="sr-only">Expand {column.title}</span>
+                      </template>
+                      <template if:false={column.isCollapsed}>
+                        <lightning-icon icon-name="utility:chevrondown" size="xx-small"
+                          aria-hidden="true"></lightning-icon>
+                        <span class="sr-only">Collapse {column.title}</span>
+                      </template>
+                    </button>
+                    <button class="column-action-btn add-task-btn" onclick={handleNewTaskInColumn}
+                      data-column-id={column.id} data-column-status={column.statusValue}
+                      title="Add task to {column.title}">
+                      <lightning-icon icon-name="utility:add" size="xx-small" aria-hidden="true"></lightning-icon>
+                      <span class="sr-only">Add task to {column.title}</span>
+                    </button>
                   </div>
                 </div>
-                <div class="column-actions">
-                  <button class="column-action-btn collapse-btn" onclick={handleColumnCollapseToggle}
-                    data-column-id={column.id} title="Toggle column visibility" aria-expanded={column.ariaExpanded}>
-                    <template if:true={column.isCollapsed}>
-                      <lightning-icon icon-name="utility:chevronright" size="xx-small"
-                        aria-hidden="true"></lightning-icon>
-                      <span class="sr-only">Expand {column.title}</span>
-                    </template>
-                    <template if:false={column.isCollapsed}>
-                      <lightning-icon icon-name="utility:chevrondown" size="xx-small"
-                        aria-hidden="true"></lightning-icon>
-                      <span class="sr-only">Collapse {column.title}</span>
-                    </template>
-                  </button>
-                  <button class="column-action-btn add-task-btn" onclick={handleNewTaskInColumn}
-                    data-column-id={column.id} data-column-status={column.statusValue}
-                    title="Add task to {column.title}">
-                    <lightning-icon icon-name="utility:add" size="xx-small" aria-hidden="true"></lightning-icon>
-                    <span class="sr-only">Add task to {column.title}</span>
-                  </button>
-                </div>
-              </div>
 
-              <template if:false={column.isCollapsed}>
-                <div class="column-content" data-column-id={column.id} ondragover={handleDragOver} ondrop={handleDrop}
-                  ondragleave={handleDragLeave}>
-                  <template for:each={column.cards} for:item="card">
-                    <c-kanban-card key={card.Id} issue={card} is-dark-mode={isDarkMode} data-id={card.Id}
-                      draggable="true" oncarddragstart={handleCardDragStart} onclick={handleCardClick}
-                      ontimelogrequest={handleTimeLogRequest}></c-kanban-card>
-                  </template>
-                  <template if:false={column.hasCards}>
-                    <div class="empty-column">
-                      <p>
-                        Drop tasks here or
-                        <lightning-button variant="base" label="add a new task" onclick={handleNewTaskInColumn}
-                          data-column-id={column.id} data-column-status={column.statusValue}></lightning-button>
-                      </p>
-                    </div>
-                  </template>
-                </div>
-              </template>
-              <template if:true={column.isCollapsed}>
-                <div class="collapsed-center-label" title={column.title}>{column.title}</div>
-              </template>
-            </div>
-          </template>
+                <template if:false={column.isCollapsed}>
+                  <div class="column-content" data-column-id={column.id} ondragover={handleDragOver} ondrop={handleDrop}
+                    ondragleave={handleDragLeave}>
+                    <template for:each={column.cards} for:item="card">
+                      <c-kanban-card key={card.Id} issue={card} is-dark-mode={isDarkMode} data-id={card.Id}
+                        draggable="true" oncarddragstart={handleCardDragStart} onclick={handleCardClick}
+                        ontimelogrequest={handleTimeLogRequest}></c-kanban-card>
+                    </template>
+                    <template if:false={column.hasCards}>
+                      <div class="empty-column">
+                        <p>
+                          Drop tasks here or
+                          <lightning-button variant="base" label="add a new task" onclick={handleNewTaskInColumn}
+                            data-column-id={column.id} data-column-status={column.statusValue}></lightning-button>
+                        </p>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <template if:true={column.isCollapsed}>
+                  <div class="collapsed-center-label" title={column.title}>{column.title}</div>
+                </template>
+              </div>
+            </template>
+          </div>
         </div>
-      </div>
       </template>
       <!-- End Kanban Board View -->
 
@@ -333,8 +333,15 @@
               <template if:true={selectedTaskDetails}>
                 <div class="filter-section">
                   <div class="filter-section-header">
-                    <lightning-icon icon-name="utility:task" size="x-small"></lightning-icon>
-                    Details
+                    <div class="header-left">
+                      <lightning-icon icon-name="utility:task" size="x-small"></lightning-icon>
+                      Details
+                    </div>
+                    <button class="header-toggle-btn" onclick={handleToggleTimeLog} 
+                            title="Toggle Time Logging" aria-pressed={showTimeLogSection}>
+                      <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
+                      <span>Log Time</span>
+                    </button>
                   </div>
                   <div class="filter-section-content">
                     <template if:true={hasTeamOptions}>
@@ -448,10 +455,11 @@
                     </div>
 
                     <!-- Logged Time Section -->
-                    <div class="filter-section-header" style="margin-top: 1rem;">
-                      <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
-                      Logged Time
-                    </div>
+                    <template if:true={showTimeLogSection}>
+                      <div class="filter-section-header" style="margin-top: 1rem;">
+                        <lightning-icon icon-name="utility:clock" size="x-small"></lightning-icon>
+                        Logged Time
+                      </div>
                     <div class="filter-form-group grid-2col">
                       <lightning-input type="number" name="Completion__c" label="Completion (%)" min="0" max="100"
                         value={logTimeData.Completion__c} onchange={handleLogFieldChange}
@@ -494,6 +502,8 @@
                         Log Time
                       </button>
                     </div>
+                    </template>
+                    <!-- End Logged Time Section -->
 
                     <!-- Comments Section -->
                     <div class="filter-section-header" style="margin-top: 1rem;">

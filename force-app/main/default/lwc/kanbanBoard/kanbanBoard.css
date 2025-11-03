@@ -88,19 +88,21 @@
    SIDEBAR NAVIGATION
    ============================================================================= */
 .unified-sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  align-self: flex-start;
+  left: 0;
   width: 220px;
   min-width: 220px;
   height: 100vh;
+  max-height: 100vh;
   background: linear-gradient(180deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
   border-right: 1px solid rgba(59, 130, 246, 0.3);
   box-shadow: 2px 0 12px rgba(37, 99, 235, 0.2);
   z-index: var(--z-sidebar);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  overflow: hidden;
 }
 
 .kanban-root.dark-mode .unified-sidebar {
@@ -115,6 +117,7 @@
   gap: 8px;
   padding: 12px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
 }
 
 .sidebar-app-icon {
@@ -132,6 +135,9 @@
   flex-direction: column;
   padding: 8px;
   gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-nav>button {
@@ -174,12 +180,15 @@
   height: 1px;
   background: rgba(255, 255, 255, 0.15);
   margin: 8px 12px;
+  flex-shrink: 0;
 }
 
 .sidebar-footer {
   margin-top: auto;
   padding: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
 }
 
 .theme-toggle-btn {
@@ -187,7 +196,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.1);
@@ -196,12 +205,14 @@
   transition: all 0.2s ease;
   text-align: left;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .theme-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 .sidebar-controls {
@@ -223,10 +234,52 @@
   cursor: pointer;
 }
 
+/* Responsive breakpoints */
 @media (max-width: 1023px) {
   .unified-sidebar {
+    width: 60px;
+    min-width: 60px;
+  }
+
+  .sidebar-title,
+  .sidebar-nav>button span,
+  .badge {
     display: none;
-    /* Hide sidebar on smaller screens for now */
+  }
+
+  .sidebar-nav>button {
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .theme-toggle-btn span {
+    display: none;
+  }
+
+  .theme-toggle-btn {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .main-content {
+    width: calc(100% - 60px);
+    margin-left: 60px;
+  }
+}
+
+@media (max-width: 767px) {
+  .unified-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .unified-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    width: 100%;
+    margin-left: 0;
   }
 }
 
@@ -262,8 +315,9 @@
   flex-direction: column;
   overflow: visible;
   background: inherit;
-  width: 100%;
-  height: 100vh;
+  width: calc(100% - 220px);
+  margin-left: 220px;
+  min-height: 100vh;
   /* Use full viewport height */
 }
 
@@ -603,8 +657,9 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  min-height: calc(100vh - 120px);
-  /* Ensure minimum height for collapsed columns */
+  height: 100%;
+  max-height: calc(100vh - 60px);
+  /* Account for header */
 }
 
 .kanban-columns {
@@ -614,16 +669,17 @@
   padding: 6px 8px;
   /* Minimal padding for edge spacing */
   overflow-x: auto;
-  overflow-y: visible;
-  min-height: calc(100vh - 120px);
+  overflow-y: auto;
+  flex: 1;
+  height: 100%;
   /* Use more available viewport height */
-  align-items: stretch;
+  align-items: flex-start;
   width: 100%;
   /* Optimized to avoid scrolling on standard screen sizes */
   min-width: fit-content;
   /* Allow natural content width - should fit without scrolling */
   background: transparent;
-  scrollbar-width: auto;
+  scrollbar-width: thin;
   /* Firefox - show scrollbar */
   scrollbar-color: #cbd5e1 #f1f5f9;
   /* Firefox - thumb and track colors */

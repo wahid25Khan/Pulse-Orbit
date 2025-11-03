@@ -1,34 +1,24 @@
 # Pulse Orbit - Code Review & Issue Tracking# Pulse Orbit
 
-
-
 ## Exception pattern for LWC and Aura## Exception pattern for LWC and Aura
 
-
-
 To surface user-friendly errors in both LWC and Aura contexts, use the shared helper `AuraErrorUtil.throwAuraOrIllegal(message)`:To surface user-friendly errors in both LWC and Aura contexts, use the shared helper `AuraErrorUtil.throwAuraOrIllegal(message)`:
-
-
 
 - In Aura contexts, it throws `AuraHandledException` so the client receives a handled error.- In Aura contexts, it throws `AuraHandledException` so the client receives a handled error.
 
 - In LWC (and when AuraHandledException isn't available in the local toolchain), it falls back to `IllegalArgumentException`.- In LWC (and when AuraHandledException isn’t available in the local toolchain), it falls back to `IllegalArgumentException`.
 
-
-
 How to use in Apex controllers/services:How to use in Apex controllers/services:
 
-
-
-```apex```
+`apex`
 
 if (String.isBlank(issueId)) {if (String.isBlank(issueId)) {
 
-	AuraErrorUtil.throwAuraOrIllegal('Issue ID cannot be blank');	AuraErrorUtil.throwAuraOrIllegal('Issue ID cannot be blank');
+    AuraErrorUtil.throwAuraOrIllegal('Issue ID cannot be blank');	AuraErrorUtil.throwAuraOrIllegal('Issue ID cannot be blank');
 
 }}
 
-``````
+````
 
 
 
@@ -300,6 +290,7 @@ git push origin main
 
 ---
 
-**Last Updated**: November 3, 2025  
-**Version**: 0.1.0  
+**Last Updated**: November 3, 2025
+**Version**: 0.1.0
 **Maintainers**: Pulse Orbit Development Team
+````

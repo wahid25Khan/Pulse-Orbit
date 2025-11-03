@@ -1,5 +1,5 @@
+import { LightningElement, wire, track, api } from 'lwc';
 import getTasks from '@salesforce/apex/KanbanBoardController.getTasks';
-import { api, LightningElement, track, wire } from 'lwc';
 
 const VIEW_MODES = {
     DAY: 'day',

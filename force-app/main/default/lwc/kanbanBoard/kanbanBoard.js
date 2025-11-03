@@ -202,20 +202,20 @@ export default class KanbanBoard extends LightningElement {
   // Sidebar helpers
   get navClassDashboard() {
     return this.selectedNav === "dashboard"
-      ? "sidebar-nav-item active"
-      : "sidebar-nav-item";
+      ? "active"
+      : "";
   }
 
   get navClassKanban() {
     return this.selectedNav === "kanban"
-      ? "sidebar-nav-item active"
-      : "sidebar-nav-item";
+      ? "active"
+      : "";
   }
 
   get navClassTasks() {
     return this.selectedNav === "tasks"
-      ? "sidebar-nav-item active"
-      : "sidebar-nav-item";
+      ? "active"
+      : "";
   }
 
   get themeToggleLabel() {
@@ -430,10 +430,10 @@ export default class KanbanBoard extends LightningElement {
       };
       await this.refreshTimeAggregates();
       this.updateRemainingEstimate();
-      
+
       // Set initial time log section visibility based on focus mode
       this.showTimeLogSection = this.isLogTimeFocus;
-      
+
       if (this.isLogTimeFocus) {
         this.scrollLogTimeSectionIntoView();
       }
@@ -447,7 +447,7 @@ export default class KanbanBoard extends LightningElement {
   handleToggleTimeLog(event) {
     event.stopPropagation();
     this.showTimeLogSection = !this.showTimeLogSection;
-    
+
     // If showing time log section, scroll it into view
     if (this.showTimeLogSection) {
       setTimeout(() => {

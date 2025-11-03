@@ -144,7 +144,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
@@ -152,6 +152,8 @@
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
+  min-height: 40px;
+  width: 100%;
 }
 
 .sidebar-nav>button:hover {
@@ -164,6 +166,16 @@
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-nav>button lightning-icon {
+  flex-shrink: 0;
+}
+
+.sidebar-nav>button span:first-of-type {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 
 .badge.badge-soon {
@@ -249,7 +261,8 @@
 
   .sidebar-nav>button {
     justify-content: center;
-    padding: 8px;
+    padding: 12px 8px;
+    min-height: 44px;
   }
 
   .theme-toggle-btn span {

@@ -166,7 +166,7 @@ public with sharing class TaskQueryService {
     try {
         return (List<TLG_Task__c>) Database.query(query);
     } catch (Exception ex) {
-        System.debug(LoggingLevel.WARN, 'Primary query failed, retrying without optional fields/filters. Query=' + query + ' message=' + ex.getMessage());
+        PulseOrbitLogger.warn('Primary query failed, retrying without optional fields/filters. Query=' + query + ' message=' + ex.getMessage());
 
         // Build fallback query without optional fields and their filters
         List<String> baseFields = new List<String>{
@@ -206,7 +206,7 @@ public with sharing class TaskQueryService {
         try {
             return (List<TLG_Task__c>) Database.query(fbQuery);
         } catch (Exception ex2) {
-            System.debug(LoggingLevel.ERROR, 'Fallback query failed. Query=' + fbQuery + ' message=' + ex2.getMessage());
+            PulseOrbitLogger.error('Fallback query failed. Query=' + fbQuery, ex2);
             throw ex2;
         }
     }

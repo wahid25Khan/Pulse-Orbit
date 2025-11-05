@@ -33,21 +33,16 @@
   /* Use SLDS design tokens where possible with fallbacks to current palette */
   --color-bg: var(--po-color-bg, linear-gradient(135deg, #fdfbf7 0%, #f5ede0 100%));
   --color-text: #3d2f1f;
-  /* Fixed: Removed internal token --lwc-colorTextDefault */
   --color-text-secondary: #6b5640;
-  /* Fixed: Removed internal token --lwc-colorTextWeak */
-  --color-surface: var(--lwc-colorBackgroundAlt, #fffdf8);
+  --color-surface: var(--slds-c-button-color-background, #fffdf8);
   --color-surface-hover: #faf6ed;
-  /* Fixed: Removed internal token --lwc-colorBackgroundAlt2 */
-  --color-border: var(--lwc-colorBorder, rgba(218, 186, 140, 0.3));
+  --color-border: var(--slds-c-button-color-border, rgba(218, 186, 140, 0.3));
   --color-shadow: rgba(139, 99, 46, 0.08);
-  --color-primary: var(--lwc-brandAccessible, #d4a574);
-  --color-primary-hover: var(--lwc-brandAccessibleActive, #c89960);
-  --color-accent: var(--lwc-brandAccent, #b8935f);
+  --color-primary: var(--slds-c-button-brand-color-background, #d4a574);
+  --color-primary-hover: var(--slds-c-button-brand-color-background-hover, #c89960);
+  --color-accent: var(--slds-c-button-brand-color-border, #b8935f);
   --color-success: #7a9e5c;
-  /* Fixed: Removed internal token --lwc-colorTextSuccess */
   --color-error: #c97c63;
-  /* Fixed: Removed internal token --lwc-colorTextError */
 
   /* Theme Transition */
   transition:
@@ -124,9 +119,9 @@
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: var(--lwc-colorBackgroundAlt, #ffffff);
+  background: var(--slds-c-button-color-background, #ffffff);
   color: #1f2937;
-  border: 1px solid var(--lwc-colorBorder, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--slds-c-button-color-border, rgba(0, 0, 0, 0.1));
   border-radius: 8px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   z-index: var(--z-modal);
@@ -4290,7 +4285,7 @@ body.has-time-log-modal,
 }
 
 .action-button:hover {
-  background-color: var(--lwc-colorBackgroundButtonDefaultHover, #f3f2f2);
+  background-color: var(--slds-c-button-color-background-hover, #f3f2f2);
 }
 
 /* =============================================================================
@@ -4911,8 +4906,8 @@ body.has-time-log-modal,
   }
 
   .time-btn {
-    border: 1px solid var(--lwc-colorBorder, #dcdcdc);
-    background: var(--lwc-colorBackgroundAlt, #fff);
+    border: 1px solid var(--slds-c-button-color-border, #dcdcdc);
+    background: var(--slds-c-button-color-background, #fff);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
   }
@@ -4931,7 +4926,7 @@ body.has-time-log-modal,
   }
 
   .delay-modal__content {
-    background: var(--lwc-colorBackgroundAlt, #fff);
+    background: var(--slds-c-button-color-background, #fff);
     width: 90vw;
     max-width: 800px;
     max-height: 80vh;
@@ -4946,7 +4941,7 @@ body.has-time-log-modal,
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--lwc-colorBorder, #e5e7eb);
+    border-bottom: 1px solid var(--slds-c-button-color-border, #e5e7eb);
   }
 
   .delay-modal__body {

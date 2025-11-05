@@ -289,7 +289,9 @@ public with sharing class TaskManagementService {
         );
       }
       if (taskData.containsKey('TLG_Team__c')) {
-        newTask.TLG_Team__c = (String) taskData.get('TLG_Team__c');
+        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
+        Object teamValue = taskData.get('TLG_Team__c');
+        newTask.TLG_Team__c = validateAndConvertToId(teamValue, 'TLG_Team__c');
       }
       if (taskData.containsKey('TLG_Opportunity__c')) {
         newTask.TLG_Opportunity__c = (Id) taskData.get('TLG_Opportunity__c');
@@ -307,7 +309,9 @@ public with sharing class TaskManagementService {
         newTask.TLG_Category__c = (String) taskData.get('TLG_Category__c');
       }
       if (taskData.containsKey('Parent__c')) {
-        newTask.Parent__c = (String) taskData.get('Parent__c');
+        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
+        Object parentValue = taskData.get('Parent__c');
+        newTask.Parent__c = validateAndConvertToId(parentValue, 'Parent__c');
       }
       if (taskData.containsKey('TLG_Assigned_To__c')) {
         try {
@@ -364,7 +368,9 @@ public with sharing class TaskManagementService {
         );
       }
       if (taskData.containsKey('TLG_Team__c')) {
-        taskToUpdate.TLG_Team__c = (String) taskData.get('TLG_Team__c');
+        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
+        Object teamValue = taskData.get('TLG_Team__c');
+        taskToUpdate.TLG_Team__c = validateAndConvertToId(teamValue, 'TLG_Team__c');
       }
       if (taskData.containsKey('TLG_Opportunity__c')) {
         taskToUpdate.TLG_Opportunity__c = (Id) taskData.get('TLG_Opportunity__c');
@@ -382,7 +388,9 @@ public with sharing class TaskManagementService {
         taskToUpdate.TLG_Category__c = (String) taskData.get('TLG_Category__c');
       }
       if (taskData.containsKey('Parent__c')) {
-        taskToUpdate.Parent__c = (String) taskData.get('Parent__c');
+        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
+        Object parentValue = taskData.get('Parent__c');
+        taskToUpdate.Parent__c = validateAndConvertToId(parentValue, 'Parent__c');
       }
       if (taskData.containsKey('TLG_Assigned_To__c')) {
         try {
@@ -504,5 +512,55 @@ public with sharing class TaskManagementService {
       AuraErrorUtil.throwAuraOrIllegal('Task not found with Id: ' + taskId);
     }
     delete tasks[0];
+  }
+
+  /**
+   * Validates and converts an Object to a Salesforce Id
+   * Handles null values, String to Id conversion, and type validation
+   * @param value The Object value to convert (can be null, String, or Id)
+   * @param fieldName The field name for error messages
+   * @return Id The validated Id or null if value is null/empty
+   * @throws AuraHandledException if the value is not a valid Id format
+   */
+  private static Id validateAndConvertToId(Object value, String fieldName) {
+    if (value == null) {
+      return null;
+    }
+
+    // If already an Id, return it
+    if (value instanceof Id) {
+      return (Id) value;
+    }
+
+    // If String, validate and convert
+    if (value instanceof String) {
+      String stringValue = (String) value;
+      if (String.isBlank(stringValue)) {
+        return null;
+      }
+
+      // Validate Id format (15 or 18 characters)
+      if (stringValue.length() != 15 && stringValue.length() != 18) {
+        AuraErrorUtil.throwAuraOrIllegal(
+          'Invalid Id format for field ' + fieldName + ': ' + stringValue
+        );
+      }
+
+      try {
+        return (Id) stringValue;
+      } catch (Exception e) {
+        AuraErrorUtil.throwAuraOrIllegal(
+          'Invalid Id value for field ' + fieldName + ': ' + stringValue + 
+          ' (' + e.getMessage() + ')'
+        );
+      }
+    }
+
+    // Unexpected type
+    AuraErrorUtil.throwAuraOrIllegal(
+      'Unexpected data type for field ' + fieldName + ': ' + 
+      String.valueOf(value).substring(0, 50)
+    );
+    return null; // Never reached, but required for compilation
   }
 }

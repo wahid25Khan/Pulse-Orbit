@@ -1,11 +1,11 @@
 /**
  * Toast notification helper utility
  * Provides consistent toast messaging across all Kanban components
- * 
+ *
  * @module shared/utils/toastHelper
  */
 
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
 /**
  * Display a toast notification
@@ -14,19 +14,26 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
  * @param {string} message - Toast message
  * @param {string} variant - Toast variant: 'success', 'error', 'warning', 'info'
  */
-export function showToast(context, title, message, variant = 'info') {
-    if (!context) {
-        console.error('showToast: context is required');
-        return;
-    }
-    
-    const event = new ShowToastEvent({
-        title,
-        message,
-        variant
-    });
-    
-    context.dispatchEvent(event);
+export function showToast(
+	context,
+	title,
+	message,
+	variant = "info",
+	mode = "dismissible"
+) {
+	if (!context) {
+		console.error("showToast: context is required");
+		return;
+	}
+
+	const event = new ShowToastEvent({
+		title,
+		message,
+		variant,
+		mode,
+	});
+
+	context.dispatchEvent(event);
 }
 
 /**
@@ -35,8 +42,8 @@ export function showToast(context, title, message, variant = 'info') {
  * @param {string} title - Toast title
  * @param {string} message - Toast message
  */
-export function showSuccess(context, title, message) {
-    showToast(context, title, message, 'success');
+export function showSuccess(context, title, message, mode = "dismissible") {
+	showToast(context, title, message, "success", mode);
 }
 
 /**
@@ -45,8 +52,8 @@ export function showSuccess(context, title, message) {
  * @param {string} title - Toast title
  * @param {string} message - Toast message
  */
-export function showError(context, title, message) {
-    showToast(context, title, message, 'error');
+export function showError(context, title, message, mode = "dismissible") {
+	showToast(context, title, message, "error", mode);
 }
 
 /**
@@ -55,8 +62,8 @@ export function showError(context, title, message) {
  * @param {string} title - Toast title
  * @param {string} message - Toast message
  */
-export function showWarning(context, title, message) {
-    showToast(context, title, message, 'warning');
+export function showWarning(context, title, message, mode = "dismissible") {
+	showToast(context, title, message, "warning", mode);
 }
 
 /**
@@ -65,6 +72,6 @@ export function showWarning(context, title, message) {
  * @param {string} title - Toast title
  * @param {string} message - Toast message
  */
-export function showInfo(context, title, message) {
-    showToast(context, title, message, 'info');
+export function showInfo(context, title, message, mode = "dismissible") {
+	showToast(context, title, message, "info", mode);
 }

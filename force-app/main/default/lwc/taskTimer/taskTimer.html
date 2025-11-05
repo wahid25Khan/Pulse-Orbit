@@ -1,0 +1,147 @@
+<template>
+	<div class={timerClass}>
+		<!-- Compact View (for kanban cards) -->
+		<template if:true={compact}>
+			<div class="timer-compact-container">
+				<div class="timer-display-compact" title={formattedTime}>
+					<lightning-icon
+						icon-name="utility:clock"
+						size="xx-small"
+						class="timer-icon"
+					>
+					</lightning-icon>
+					<span class="timer-text-compact">{formattedTime}</span>
+				</div>
+				<div class="timer-controls-compact">
+					<lightning-button-icon
+						icon-name={playIconName}
+						variant={playButtonVariant}
+						alternative-text={playButtonLabel}
+						title={playButtonLabel}
+						onclick={handlePlayPause}
+						size="x-small"
+					>
+					</lightning-button-icon>
+					<template if:true={hasElapsedTime}>
+						<lightning-button-icon
+							icon-name="utility:stop"
+							alternative-text="Reset Timer"
+							title="Reset Timer"
+							onclick={handleReset}
+							size="x-small"
+						>
+						</lightning-button-icon>
+					</template>
+				</div>
+			</div>
+		</template>
+
+		<!-- Full View (for task detail/modal) -->
+		<template if:false={compact}>
+			<div class="timer-full-container">
+				<div class="timer-header">
+					<lightning-icon
+						icon-name="utility:clock"
+						size="small"
+						class="timer-icon-large"
+					>
+					</lightning-icon>
+					<h3 class="timer-title">Task Timer</h3>
+				</div>
+
+				<div class="timer-display-full">
+					<div class="time-value">{formattedTime}</div>
+					<div class="time-label">
+						<template if:true={hasElapsedTime}>
+							{elapsedHours} hours
+						</template>
+						<template if:false={hasElapsedTime}> Ready to start </template>
+					</div>
+				</div>
+
+				<!-- Preset Buttons -->
+				<div class="timer-presets">
+					<span class="presets-label">Quick Set:</span>
+					<button
+						class="preset-btn"
+						data-minutes="15"
+						onclick={handlePreset}
+						title="Set timer to 15 minutes"
+					>
+						15 min
+					</button>
+					<button
+						class="preset-btn"
+						data-minutes="30"
+						onclick={handlePreset}
+						title="Set timer to 30 minutes"
+					>
+						30 min
+					</button>
+					<button
+						class="preset-btn"
+						data-minutes="60"
+						onclick={handlePreset}
+						title="Set timer to 1 hour"
+					>
+						1 hour
+					</button>
+				</div>
+
+				<div class="timer-controls-full">
+					<lightning-button
+						variant={playButtonVariant}
+						label={playButtonLabel}
+						icon-name={playIconName}
+						onclick={handlePlayPause}
+						class="control-button"
+					>
+					</lightning-button>
+
+					<template if:true={hasElapsedTime}>
+						<lightning-button
+							variant="neutral"
+							label="Reset"
+							icon-name="utility:refresh"
+							onclick={handleReset}
+							class="control-button"
+						>
+						</lightning-button>
+
+						<lightning-button
+							variant="success"
+							label="Log Time"
+							icon-name="utility:add"
+							onclick={handleLogTime}
+							class="control-button"
+						>
+						</lightning-button>
+					</template>
+				</div>
+
+				<!-- Running indicator -->
+				<template if:true={isRunning}>
+					<div class="running-indicator">
+						<div class="pulse-dot"></div>
+						<span>Timer running...</span>
+					</div>
+				</template>
+
+				<!-- Helper text -->
+				<div class="timer-help-text">
+					<template if:false={hasElapsedTime}>
+						Click Start to begin tracking time on this task.
+					</template>
+					<template if:true={hasElapsedTime}>
+						<template if:true={isRunning}>
+							Timer is running. Click Pause to stop.
+						</template>
+						<template if:false={isRunning}>
+							Timer paused. Click Start to resume or Log Time to save.
+						</template>
+					</template>
+				</div>
+			</div>
+		</template>
+	</div>
+</template>

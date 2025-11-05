@@ -1,0 +1,261 @@
+/* Task Timer Component Styles */
+
+/* Compact Mode - for kanban cards */
+.timer-compact-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.5rem;
+    background: var(--lwc-colorBackground, white);
+    border-radius: 0.25rem;
+    border: 1px solid var(--lwc-colorBorder, #d1d5db);
+}
+
+.timer-display-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.timer-text-compact {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--po-text-primary, #1f2937);
+    font-family: 'Courier New', monospace;
+    min-width: 60px;
+}
+
+.timer-controls-compact {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.timer-icon {
+    color: var(--po-accent-1, #3b82f6);
+}
+
+/* Full Mode - for modals/detail views */
+.timer-full-container {
+    padding: 1.5rem;
+    background: var(--lwc-colorBackground, white);
+    border-radius: 0.5rem;
+    border: 1px solid var(--lwc-colorBorder, #e5e7eb);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.timer-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.timer-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--po-text-primary, #1f2937);
+    margin: 0;
+}
+
+.timer-icon-large {
+    color: var(--po-accent-1, #3b82f6);
+}
+
+.timer-display-full {
+    text-align: center;
+    padding: 2rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.time-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.time-label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.timer-presets {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    background: var(--po-bg-secondary, #f8fafc);
+    border-radius: 0.5rem;
+    border: 1px solid var(--po-border, #e2e8f0);
+}
+
+.presets-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--po-text-secondary, #64748b);
+}
+
+.preset-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--po-accent-1, #3b82f6);
+    border-radius: 0.375rem;
+    background: white;
+    color: var(--po-accent-1, #3b82f6);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-btn:hover {
+    background: var(--po-accent-1, #3b82f6);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.preset-btn:active {
+    transform: translateY(0);
+}
+
+.timer-controls-full {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.control-button {
+    min-width: 120px;
+}
+
+.running-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #fef3c7;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: #92400e;
+    font-weight: 500;
+}
+
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: #f59e0b;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+
+.timer-help-text {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--po-text-secondary, #6b7280);
+    line-height: 1.5;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+
+    .timer-compact-container,
+    .timer-full-container {
+        background: var(--lwc-colorBackgroundAlt, #1f2937);
+        border-color: var(--lwc-colorBorder, #374151);
+    }
+
+    .timer-text-compact,
+    .timer-title {
+        color: var(--po-text-primary, #f3f4f6);
+    }
+
+    .timer-help-text {
+        color: var(--po-text-secondary, #d1d5db);
+    }
+
+    .timer-presets {
+        background: var(--lwc-colorBackgroundAlt, #1f2937);
+        border-color: var(--lwc-colorBorder, #374151);
+    }
+
+    .presets-label {
+        color: var(--po-text-secondary, #d1d5db);
+    }
+
+    .preset-btn {
+        background: var(--lwc-colorBackground, #111827);
+        border-color: var(--po-accent-1, #60a5fa);
+        color: var(--po-accent-1, #60a5fa);
+    }
+
+    .preset-btn:hover {
+        background: var(--po-accent-1, #60a5fa);
+        color: #111827;
+    }
+
+    .running-indicator {
+        background: #78350f;
+        color: #fef3c7;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .time-value {
+        font-size: 2rem;
+    }
+
+    .timer-display-full {
+        padding: 1.5rem 0.75rem;
+    }
+
+    .timer-controls-full {
+        gap: 0.5rem;
+    }
+
+    .control-button {
+        min-width: 100px;
+        font-size: 0.875rem;
+    }
+}
+
+/* Hover effects */
+.timer-compact-container:hover {
+    border-color: var(--po-accent-1, #3b82f6);
+    box-shadow: 0 1px 2px 0 rgba(59, 130, 246, 0.1);
+}
+
+/* Animation for time updates */
+.time-value {
+    transition: transform 0.1s ease;
+}
+
+.timer-full-container:has(.time-value:active) .time-value {
+    transform: scale(1.02);
+}

@@ -72,22 +72,14 @@ describe('c-kanban-board', () => {
         // Prepare drawer state pre-mount
         element.showTaskDrawer = true;
         element.selectedTaskDetails = { Id: 't1', name: 'Test' };
-        document.body.appendChild(element);
-        await Promise.resolve();
-        await Promise.resolve();
-
         // Seed mentions through public API and verify chips render
         element.selectedMentions = [
             { userId: 'u1', name: 'Alice Johnson', username: 'alice' }
         ];
-        await Promise.resolve();
-        await Promise.resolve();
-
         // Verify state reflects the seed
         expect(element.selectedMentions.length).toBe(1);
         // Simulate removal by clearing mentions and verify state
         element.selectedMentions = [];
-        await Promise.resolve();
         expect(element.selectedMentions.length).toBe(0);
     });
 
@@ -102,10 +94,6 @@ describe('c-kanban-board', () => {
         element.selectedMentions = [
             { userId: 'u1', name: 'Alice Johnson', username: 'alice' }
         ];
-        document.body.appendChild(element);
-        await Promise.resolve();
-        await Promise.resolve();
-
         // Trigger post through public API to avoid relying on DOM internals
         await element.handlePostComment();
 
@@ -118,9 +106,6 @@ describe('c-kanban-board', () => {
     it('filters team-specific statuses to valid task picklist', async () => {
         const element = createElement('c-kanban-board', { is: KanbanBoard });
         element.disableAutoInit = true;
-        document.body.appendChild(element);
-        await Promise.resolve();
-
         const options = await element.loadTeamStatusOptions('team-1');
         const values = options.map(o => o.value);
         expect(values).toContain('In Progress');

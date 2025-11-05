@@ -1,60 +1,103 @@
 <template>
-    <article class={cardClass} draggable="true" data-id={issueId} ondragstart={handleDragStart}
-        ondragend={handleDragEnd} onclick={handleClick} aria-label={ariaLabel}>
-        <div class="card-sheen"></div>
-        <div class="card-inner">
-            <header class="card-top">
-                <div class="chip-row">
-                    <button class="chip status-chip" onmousedown={handleDragHandleMouseDown}
-                        ontouchstart={handleDragHandleMouseDown} title="Drag task" aria-label="Drag task">
-                        <span>{statusLabel}</span>
-                    </button>
-                    <template if:true={priorityLabel}>
-                        <span class={priorityClass}>{priorityLabel}</span>
-                    </template>
-                </div>
-                <button class="circle-btn" type="button" title="Log time" aria-label="Log time"
-                    onclick={handleTimeLogClick}>
-                    <lightning-icon icon-name="utility:arrowup" size="x-small"></lightning-icon>
-                </button>
-            </header>
+	<article
+		class={cardClass}
+		draggable="true"
+		data-id={issueId}
+		ondragstart={handleDragStart}
+		ondragend={handleDragEnd}
+		onclick={handleClick}
+		aria-label={ariaLabel}
+	>
+		<div class="card-sheen"></div>
+		<div class="card-inner">
+			<header class="card-top">
+				<div class="chip-row">
+					<button
+						class="chip status-chip"
+						onmousedown={handleDragHandleMouseDown}
+						ontouchstart={handleDragHandleMouseDown}
+						title="Drag task"
+						aria-label="Drag task"
+					>
+						<span>{statusLabel}</span>
+					</button>
+					<template if:true={priorityLabel}>
+						<span class={priorityClass}>{priorityLabel}</span>
+					</template>
+				</div>
+				<button
+					class="circle-btn"
+					type="button"
+					title="Log time"
+					aria-label="Log time"
+					onclick={handleTimeLogClick}
+				>
+					<lightning-icon
+						icon-name="utility:arrowup"
+						size="x-small"
+					></lightning-icon>
+				</button>
+			</header>
 
-            <div class="metric-block">
-                <span class="metric-value">{progressDisplay}</span>
-                <lightning-icon icon-name="utility:trend" size="xx-small" class="metric-icon"></lightning-icon>
-            </div>
+			<div class="metric-block">
+				<span class="metric-value">{progressDisplay}</span>
+				<lightning-icon
+					icon-name="utility:trend"
+					size="xx-small"
+					class="metric-icon"
+				></lightning-icon>
+			</div>
 
-            <section class="card-body">
-                <h3 class="card-headline" title={detailHeadline}>{detailHeadline}</h3>
-                <p class="card-text" title={detailBody}>{detailBody}</p>
-            </section>
+			<section class="card-body">
+				<h3 class="card-headline" title={detailHeadline}>{detailHeadline}</h3>
+				<p class="card-text" title={detailBody}>{detailBody}</p>
+			</section>
 
-            <footer class="card-bottom">
-                <div class="avatar-stack" role="list">
-                    <template if:true={hasAssignees}>
-                        <template for:each={assigneeList} for:item="assignee">
-                            <span key={assignee.key} class="avatar-slot" role="listitem">
-                                <template if:true={assignee.hasPhoto}>
-                                    <span class="avatar photo" title={assignee.name}>
-                                        <img class="avatar-img" src={assignee.photo} alt={assignee.name} />
-                                    </span>
-                                </template>
-                                <template if:false={assignee.hasPhoto}>
-                                    <span class="avatar initials" title={assignee.name}>{assignee.initials}</span>
-                                </template>
-                            </span>
-                        </template>
-                    </template>
-                    <template if:false={hasAssignees}>
-                        <span class="avatar placeholder">+</span>
-                    </template>
-                </div>
-                <div class="timeline-dots">
-                    <template for:each={sliderDots} for:item="dot">
-                        <span key={dot.key} class={dot.className}></span>
-                    </template>
-                </div>
-            </footer>
-        </div>
-    </article>
+			<footer class="card-bottom">
+				<!-- Task Timer -->
+				<div class="card-timer-section">
+					<c-task-timer
+						task-id={issueId}
+						task-name={displayTitle}
+						compact
+						onlogtime={handleTimerLogTime}
+					>
+					</c-task-timer>
+				</div>
+
+				<div class="card-bottom-row">
+					<div class="avatar-stack" role="list">
+						<template if:true={hasAssignees}>
+							<template for:each={assigneeList} for:item="assignee">
+								<span key={assignee.key} class="avatar-slot" role="listitem">
+									<template if:true={assignee.hasPhoto}>
+										<span class="avatar photo" title={assignee.name}>
+											<img
+												class="avatar-img"
+												src={assignee.photo}
+												alt={assignee.name}
+											/>
+										</span>
+									</template>
+									<template if:false={assignee.hasPhoto}>
+										<span class="avatar initials" title={assignee.name}
+											>{assignee.initials}</span
+										>
+									</template>
+								</span>
+							</template>
+						</template>
+						<template if:false={hasAssignees}>
+							<span class="avatar placeholder">+</span>
+						</template>
+					</div>
+					<div class="timeline-dots">
+						<template for:each={sliderDots} for:item="dot">
+							<span key={dot.key} class={dot.className}></span>
+						</template>
+					</div>
+				</div>
+			</footer>
+		</div>
+	</article>
 </template>

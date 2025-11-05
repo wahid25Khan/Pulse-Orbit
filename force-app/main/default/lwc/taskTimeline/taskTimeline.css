@@ -2,10 +2,14 @@
     --lane-height: 56px;
 }
 
+/* Card shell */
 .timeline-card {
-    background: var(--lwc-colorBackgroundAlt, #fff);
+    background: var(--color-surface, var(--lwc-colorBackgroundAlt, #fff));
+    border: 1px solid var(--color-border, var(--lwc-colorBorder, #e5e7eb));
+    border-radius: 12px;
 }
 
+/* Header */
 header {
     display: flex;
     justify-content: space-between;
@@ -27,6 +31,7 @@ header {
     max-width: 180px;
 }
 
+/* Controls row */
 .controls {
     display: flex;
     gap: 12px;
@@ -38,37 +43,37 @@ header {
     white-space: nowrap;
 }
 
+/* Main grid */
 .timeline {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 240px minmax(640px, 1fr);
     gap: 8px;
+    align-items: start;
 }
 
 .lane-col {
-    border-right: 1px solid var(--lwc-colorBorder, #e5e7eb);
-    overflow-y: auto;
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    border-right: 1px solid rgba(148, 163, 184, 0.35);
+    background: var(--color-surface, rgba(249, 250, 251, 0.92));
+    backdrop-filter: blur(6px);
+    border-radius: 12px 0 0 12px;
+    overflow: hidden;
 }
 
 .lane-header {
     height: 28px;
     padding: 0 8px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--lwc-colorTextWeak, #9ca3af);
 }
 
 .time-inputs {
     display: flex;
     gap: 8px;
     align-items: center;
-}
-
-.time-label {
-    font-weight: 600;
-    font-size: 12px;
-    white-space: nowrap;
 }
 
 .small-input {
@@ -84,29 +89,48 @@ header {
     height: var(--lane-height);
     display: flex;
     align-items: center;
-    padding-left: 8px;
+    padding-left: 12px;
     font-weight: 600;
-    font-size: 13px;
-    border-bottom: 1px dashed var(--lwc-colorBorder, #e5e7eb);
+    font-size: 14px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    color: #374151;
+    letter-spacing: 0.01em;
 }
 
 .grid-col {
     position: relative;
     overflow-x: auto;
+    padding-bottom: 16px;
+}
+
+.grid-col::after {
+    content: "";
+    position: sticky;
+    left: 0;
+    bottom: 0;
+    display: block;
+    height: 16px;
+    background: linear-gradient(180deg, rgba(249, 250, 251, 0), rgba(249, 250, 251, 0.8));
+    pointer-events: none;
 }
 
 .time-scale {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 2;
     height: 28px;
-    background: #f9fafb;
+    background: linear-gradient(180deg, rgba(249, 250, 251, 0.95), rgba(249, 250, 251, 0.65));
     border-bottom: 2px solid var(--lwc-colorBorder, #e5e7eb);
+    display: flex;
+    align-items: flex-end;
 }
 
 .tick {
     position: absolute;
     top: 6px;
+    left: var(--position);
     transform: translateX(-50%);
     color: var(--lwc-colorTextWeak, #6b7280);
     font-size: 11px;
@@ -114,8 +138,38 @@ header {
     white-space: nowrap;
 }
 
-.tick[data-position] {
-    left: calc(var(--position) * 1%);
+.tick span {
+    display: inline-block;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(4px);
+}
+
+.tick::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    bottom: -16px;
+    width: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.45) 0%, rgba(148, 163, 184, 0.05) 100%);
+    pointer-events: none;
+}
+
+/* Current time marker */
+.now-marker {
+    position: absolute;
+    top: 28px;
+    /* just under the time scale */
+    bottom: 0;
+    left: var(--position);
+    width: 2px;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .lane-row {
@@ -126,28 +180,35 @@ header {
     min-width: 800px;
 }
 
+/* Zebra striping for readability */
+.lane-row:nth-child(odd) {
+    background: rgba(0, 0, 0, 0.015);
+}
+
 .bar {
     position: absolute;
-    top: 10px;
-    height: calc(var(--lane-height) - 20px);
-    border-radius: 999px;
+    top: 8px;
+    height: calc(var(--lane-height) - 16px);
+    border-radius: 24px;
     color: white;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    transition: box-shadow 0.2s ease;
+    padding: 0 14px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    left: var(--position);
+    width: var(--width);
+    background: var(--gradient, linear-gradient(90deg, #3b82f6, #60a5fa));
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    min-width: 120px;
 }
 
 .bar:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
-}
-
-.bar[data-position] {
-    left: calc(var(--position) * 1%);
-    width: calc(var(--width) * 1%);
-    background: var(--gradient, linear-gradient(90deg, #1b6ef3, #8bb2ff));
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .bar-leading {
@@ -159,21 +220,25 @@ header {
 
 .bar-label {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    letter-spacing: 0.01em;
 }
 
 .progress-pill {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.98);
     color: #111827;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
     white-space: nowrap;
     flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.01em;
 }
 
 .avatar-stack {

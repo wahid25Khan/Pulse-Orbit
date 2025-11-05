@@ -1,0 +1,49 @@
+<template>
+    <div class="error-boundary-root">
+        <template if:false={hasError}>
+            <slot></slot>
+        </template>
+
+        <template if:true={hasError}>
+            <div class="error-boundary-container">
+                <div class="error-boundary-card">
+                    <lightning-icon icon-name="utility:error" size="large" alternative-text="Error" class="error-icon">
+                    </lightning-icon>
+
+                    <h1 class="error-title">Something Went Wrong</h1>
+
+                    <p class="error-message">
+                        We encountered an unexpected error. Please try refreshing the page or contact support if the
+                        problem persists.
+                    </p>
+
+                    <template if:true={showDetails}>
+                        <div class="error-details">
+                            <h3>Error Details:</h3>
+                            <pre>{errorMessage}</pre>
+                            <template if:true={errorStack}>
+                                <pre class="error-stack">{errorStack}</pre>
+                            </template>
+                        </div>
+                    </template>
+
+                    <div class="error-actions">
+                        <lightning-button label="Refresh Page" variant="brand" onclick={handleRefresh}
+                            class="error-action-btn">
+                        </lightning-button>
+
+                        <lightning-button label={detailsButtonLabel} variant="neutral" onclick={handleToggleDetails}
+                            class="error-action-btn">
+                        </lightning-button>
+
+                        <template if:true={retryCallback}>
+                            <lightning-button label="Try Again" variant="neutral" onclick={handleRetry}
+                                class="error-action-btn">
+                            </lightning-button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

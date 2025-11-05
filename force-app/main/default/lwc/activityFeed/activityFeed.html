@@ -1,0 +1,193 @@
+<template>
+	<div class="activity-feed-container">
+		<!-- Header -->
+		<template if:true={showHeader}>
+			<div class="slds-page-header slds-page-header_record-home">
+				<div class="slds-page-header__row">
+					<div class="slds-page-header__col-title">
+						<div class="slds-media">
+							<div class="slds-media__figure">
+								<span class="slds-icon_container slds-icon-standard-feed">
+									<lightning-icon
+										icon-name="standard:feed"
+										size="small"
+									></lightning-icon>
+								</span>
+							</div>
+							<div class="slds-media__body">
+								<h1
+									class="slds-page-header__title slds-truncate"
+									title={feedTitle}
+								>
+									{feedTitle}
+								</h1>
+							</div>
+						</div>
+					</div>
+					<div class="slds-page-header__col-actions">
+						<lightning-button-icon
+							icon-name="utility:refresh"
+							alternative-text="Refresh"
+							title="Refresh"
+							onclick={handleRefresh}
+							disabled={isLoading}
+						>
+						</lightning-button-icon>
+					</div>
+				</div>
+			</div>
+		</template>
+
+		<!-- Filters and last updated -->
+		<template if:false={isLoading}>
+			<div
+				class="slds-grid slds-grid_align-spread slds-p-horizontal_small slds-p-top_small"
+			>
+				<div class="slds-col">
+					<lightning-combobox
+						name="activityFilter"
+						label="Filter by Type"
+						value={selectedFilter}
+						options={filterOptions}
+						onchange={handleFilterChange}
+						variant="label-hidden"
+						placeholder="Filter activity..."
+						class="filter-combobox"
+					>
+					</lightning-combobox>
+				</div>
+				<div class="slds-col slds-text-align_right">
+					<template if:true={showLastUpdated}>
+						<p class="last-updated-text">Last updated: {lastUpdated}</p>
+					</template>
+				</div>
+			</div>
+		</template>
+
+		<!-- Loading spinner -->
+		<template if:true={isLoading}>
+			<div class="slds-is-relative slds-p-around_medium">
+				<lightning-spinner
+					alternative-text="Loading activities..."
+					size="small"
+				></lightning-spinner>
+			</div>
+		</template>
+
+		<!-- Activities Timeline -->
+		<template if:false={isLoading}>
+			<div class="activity-timeline" style={containerStyle}>
+				<template if:true={hasActivities}>
+					<ul class="slds-timeline">
+						<template for:each={displayActivities} for:item="activity">
+							<li key={activity.id} class={activity.timelineClass}>
+								<div
+									class="slds-timeline__item_expandable slds-timeline__item_task"
+								>
+									<span class={activity.iconClass}>
+										<lightning-icon
+											icon-name={activity.iconName}
+											alternative-text={activity.actionType}
+											size="x-small"
+										>
+										</lightning-icon>
+									</span>
+									<div class="slds-timeline__details">
+										<div
+											class="slds-grid slds-grid_align-spread slds-timeline__trigger"
+										>
+											<div
+												class="slds-grid slds-grid_vertical-align-center slds-truncate_container_75"
+											>
+												<!-- User Avatar -->
+												<lightning-avatar
+													fallback-icon-name="standard:user"
+													alternative-text={activity.userName}
+													size="x-small"
+													class="slds-m-right_x-small"
+												>
+												</lightning-avatar>
+												<h3
+													class="slds-truncate"
+													title={activity.activityText}
+												>
+													<span class="activity-text"
+														>{activity.activityText}</span
+													>
+												</h3>
+											</div>
+											<div
+												class="slds-timeline__actions slds-timeline__actions_inline"
+											>
+												<p class="slds-timeline__date">
+													{activity.formattedTime}
+												</p>
+											</div>
+										</div>
+
+										<!-- Task link (only show if not in task detail view) -->
+										<template if:false={taskId}>
+											<div class="slds-m-top_x-small">
+												<a
+													class="task-link"
+													data-task-id={activity.taskId}
+													onclick={navigateToTask}
+													title={activity.taskName}
+												>
+													{activity.taskName}
+												</a>
+											</div>
+										</template>
+
+										<!-- Status badge -->
+										<template if:true={activity.newValue}>
+											<div class="slds-m-top_x-small">
+												<lightning-badge
+													label={activity.newValue}
+													class="status-badge"
+												></lightning-badge>
+											</div>
+										</template>
+									</div>
+								</div>
+							</li>
+						</template>
+					</ul>
+				</template>
+
+				<!-- Empty state -->
+				<template if:false={hasActivities}>
+					<div class="slds-illustration slds-illustration_small">
+						<div class="slds-text-longform">
+							<h3 class="slds-text-heading_medium">{emptyMessage}</h3>
+							<p class="slds-text-body_regular">
+								Activity will appear here as tasks are updated.
+							</p>
+						</div>
+					</div>
+				</template>
+			</div>
+		</template>
+
+		<!-- Error message -->
+		<template if:true={error}>
+			<div
+				class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error"
+				role="alert"
+			>
+				<span class="slds-assistive-text">error</span>
+				<span
+					class="slds-icon_container slds-icon-utility-error slds-m-right_x-small"
+				>
+					<lightning-icon
+						icon-name="utility:error"
+						alternative-text="Error"
+						size="x-small"
+						variant="inverse"
+					></lightning-icon>
+				</span>
+				<h2>Error loading activity feed</h2>
+			</div>
+		</template>
+	</div>
+</template>

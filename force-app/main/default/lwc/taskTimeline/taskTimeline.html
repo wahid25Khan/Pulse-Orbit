@@ -64,6 +64,11 @@
                     </template>
                 </div>
 
+                <!-- Current time marker for Day view on today -->
+                <template if:true={showNowMarker}>
+                    <div class="now-marker" style="--position: {nowPercent}"></div>
+                </template>
+
                 <template for:each={lanes} for:item="lane">
                     <div key={lane.id} class="lane-row">
                         <template for:each={lane.bars} for:item="bar">

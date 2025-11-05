@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <description>Activity Feed component showing recent task changes and updates</description>
+    <isExposed>true</isExposed>
+    <masterLabel>Activity Feed</masterLabel>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightningCommunity__Page</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__RecordPage,lightning__HomePage">
+            <property name="teamId" type="String" label="Team ID" description="Filter activities by team" />
+            <property name="taskId" type="String" label="Task ID" description="Show activity for specific task" />
+            <property name="limitCount" type="Integer" label="Activity Limit" default="20" description="Number of activities to display" />
+            <property name="showHeader" type="Boolean" label="Show Header" default="false" description="Show component header" />
+            <property name="height" type="String" label="Height" default="400px" description="Component height (e.g., 400px)" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

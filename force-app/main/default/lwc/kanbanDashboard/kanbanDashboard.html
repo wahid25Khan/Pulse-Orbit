@@ -1,119 +1,244 @@
 <template>
-  <div class={computedRootClass}>
-    <div class="dashboard-header">
-      <div class="header-content">
-        <div class="header-left">
-          <lightning-icon icon-name="utility:dashboard" size="medium" class="dashboard-header-icon"></lightning-icon>
-          <h1 class="dashboard-title">Dashboards</h1>
-        </div>
-      </div>
-    </div>
+	<div class={computedRootClass}>
+		<div class="dashboard-header">
+			<div
+				class="header-content"
+				style="
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					gap: 12px;
+				"
+			>
+				<div
+					class="header-left"
+					style="display: flex; align-items: center; gap: 8px"
+				>
+					<lightning-icon
+						icon-name="utility:dashboard"
+						size="medium"
+						class="dashboard-header-icon"
+					></lightning-icon>
+					<h1 class="dashboard-title">Dashboards</h1>
+				</div>
+				<div class="header-right" style="display: flex; gap: 8px">
+					<!-- UX-010: Export Button -->
+					<lightning-button-menu
+						alternative-text="Export Options"
+						icon-name="utility:download"
+						variant="border-filled"
+						menu-alignment="right"
+						onselect={handleExportAction}
+					>
+						<lightning-menu-item
+							value="csv"
+							label="Export as CSV"
+							icon-name="utility:table"
+						></lightning-menu-item>
+						<lightning-menu-item
+							value="print"
+							label="Print Dashboard"
+							icon-name="utility:print"
+						></lightning-menu-item>
+					</lightning-button-menu>
 
-    <div class="dashboard-content">
-      <div class="filters-bar">
-        <div class="filters-left">
-          <lightning-input type="toggle" label="Mine only" checked={filterMine}
-            onchange={handleToggleMine}></lightning-input>
-        </div>
-        <div class="filters-right">
-          <lightning-combobox label="Project" value={projectId} options={projectOptions} placeholder="All projects"
-            onchange={handleProjectChange}></lightning-combobox>
+					<button
+						class="slds-button slds-button_neutral"
+						onclick={handleRefresh}
+						title="Refresh"
+					>
+						<lightning-icon
+							icon-name="utility:refresh"
+							size="xx-small"
+						></lightning-icon>
+						<span style="margin-left: 6px">Refresh</span>
+					</button>
+				</div>
+			</div>
+		</div>
 
-          <lightning-combobox label="Status" value={statusScope} options={statusScopeOptions}
-            onchange={handleStatusScopeChange}></lightning-combobox>
+		<div class="dashboard-content">
+			<div class="filters-bar">
+				<div class="filters-left">
+					<lightning-input
+						type="toggle"
+						label="Mine only"
+						checked={filterMine}
+						onchange={handleToggleMine}
+					></lightning-input>
+				</div>
+				<div class="filters-right">
+					<lightning-combobox
+						label="Project"
+						value={projectId}
+						options={projectOptions}
+						placeholder="All projects"
+						onchange={handleProjectChange}
+					></lightning-combobox>
 
-          <lightning-combobox label="Date range" value={dateRange} options={dateRangeOptions}
-            onchange={handleDateRangeChange}></lightning-combobox>
-          <template if:true={isCustomDateRange}>
-            <lightning-input type="date" label="Start" value={customStart}
-              onchange={handleCustomStart}></lightning-input>
-            <lightning-input type="date" label="End" value={customEnd} onchange={handleCustomEnd}></lightning-input>
-          </template>
-        </div>
-      </div>
+					<lightning-combobox
+						label="Status"
+						value={statusScope}
+						options={statusScopeOptions}
+						onchange={handleStatusScopeChange}
+					></lightning-combobox>
 
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-label">Total Tasks</div>
-          <div class="metric-value">{dashboardStats.total}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">My Tasks</div>
-          <div class="metric-value">{dashboardStats.mine}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">In Progress</div>
-          <div class="metric-value">{dashboardStats.inProgress}</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Completed</div>
-          <div class="metric-value">{dashboardStats.completed}</div>
-        </div>
-      </div>
+					<lightning-combobox
+						label="Date range"
+						value={dateRange}
+						options={dateRangeOptions}
+						onchange={handleDateRangeChange}
+					></lightning-combobox>
+					<template if:true={isCustomDateRange}>
+						<lightning-input
+							type="date"
+							label="Start"
+							value={customStart}
+							onchange={handleCustomStart}
+						></lightning-input>
+						<lightning-input
+							type="date"
+							label="End"
+							value={customEnd}
+							onchange={handleCustomEnd}
+						></lightning-input>
+					</template>
+				</div>
+			</div>
 
-      <div class="chart-card">
-        <div class="chart-title">Status Distribution</div>
-        <div class="status-bar">
-          <template for:each={statusDistribution} for:item="seg">
-            <div key={seg.label} class="status-segment" data-pct={seg.pct} data-color={seg.color} title={seg.title}>
-            </div>
-          </template>
-        </div>
-        <div class="legend">
-          <template for:each={statusDistribution} for:item="seg">
-            <div key={seg.label} class="legend-item">
-              <span class="legend-swatch" data-color={seg.color}></span>
-              <span class="legend-label">{seg.label} ({seg.count})</span>
-            </div>
-          </template>
-        </div>
-      </div>
+			<!-- Task Timeline (Gantt Chart) -->
+			<div class="timeline-section">
+				<c-task-timeline tasks={tasks}></c-task-timeline>
+			</div>
+			<div class="metrics-grid">
+				<div class="metric-card">
+					<div class="metric-label">Total Tasks</div>
+					<div class="metric-value">{dashboardStats.total}</div>
+				</div>
+				<div class="metric-card">
+					<div class="metric-label">My Tasks</div>
+					<div class="metric-value">{dashboardStats.mine}</div>
+				</div>
+				<div class="metric-card">
+					<div class="metric-label">In Progress</div>
+					<div class="metric-value">{dashboardStats.inProgress}</div>
+				</div>
+				<div class="metric-card">
+					<div class="metric-label">Completed</div>
+					<div class="metric-value">{dashboardStats.completed}</div>
+				</div>
+			</div>
 
-      <div class="chart-card">
-        <div class="chart-title">Tasks by Priority</div>
-        <div class="priority-bar">
-          <template for:each={priorityDistribution} for:item="p">
-            <div key={p.label} class="priority-segment" data-pct={p.pct} data-color={p.color} title={p.title}></div>
-          </template>
-        </div>
-        <div class="legend">
-          <template for:each={priorityDistribution} for:item="p">
-            <div key={p.label} class="legend-item">
-              <span class="legend-swatch" data-color={p.color}></span>
-              <span class="legend-label">{p.label} ({p.count})</span>
-            </div>
-          </template>
-        </div>
-      </div>
+			<div class="chart-card">
+				<div class="chart-title">Status Distribution</div>
+				<div class="status-bar">
+					<template for:each={statusDistribution} for:item="seg">
+						<div
+							key={seg.key}
+							class="status-segment clickable-segment"
+							style={seg.style}
+							title={seg.title}
+							data-status={seg.label}
+							onclick={handleStatusSegmentClick}
+							role="button"
+							tabindex="0"
+						></div>
+					</template>
+				</div>
+				<div class="legend">
+					<template for:each={statusDistribution} for:item="seg">
+						<div
+							key={seg.key}
+							class="legend-item clickable-legend"
+							data-type="status"
+							data-value={seg.label}
+							onclick={handleLegendClick}
+							role="button"
+							tabindex="0"
+						>
+							<span class="legend-swatch" style={seg.swatchStyle}></span>
+							<span class="legend-label">{seg.label} ({seg.count})</span>
+						</div>
+					</template>
+				</div>
+			</div>
 
-      <div class="chart-card">
-        <div class="chart-title">Throughput <span class="chart-subtitle">(fixed 7/30 day windows)</span></div>
-        <div class="throughput-grid">
-          <div class="throughput-card">
-            <div class="t-label">Last 7 days</div>
-            <div class="t-value">{throughput7}</div>
-          </div>
-          <div class="throughput-card">
-            <div class="t-label">Last 30 days</div>
-            <div class="t-value">{throughput30}</div>
-          </div>
-        </div>
-      </div>
+			<div class="chart-card">
+				<div class="chart-title">Tasks by Priority</div>
+				<div class="priority-bar">
+					<template for:each={priorityDistribution} for:item="p">
+						<div
+							key={p.key}
+							class="priority-segment clickable-segment"
+							style={p.style}
+							title={p.title}
+							data-priority={p.label}
+							onclick={handlePrioritySegmentClick}
+							role="button"
+							tabindex="0"
+						></div>
+					</template>
+				</div>
+				<div class="legend">
+					<template for:each={priorityDistribution} for:item="p">
+						<div
+							key={p.key}
+							class="legend-item clickable-legend"
+							data-type="priority"
+							data-value={p.label}
+							onclick={handleLegendClick}
+							role="button"
+							tabindex="0"
+						>
+							<span class="legend-swatch" style={p.swatchStyle}></span>
+							<span class="legend-label">{p.label} ({p.count})</span>
+						</div>
+					</template>
+				</div>
+			</div>
+			<div class="chart-card">
+				<div class="chart-title">
+					Throughput
+					<span class="chart-subtitle">(fixed 7/30 day windows)</span>
+				</div>
+				<div class="throughput-grid">
+					<div class="throughput-card">
+						<div class="t-label">Last 7 days</div>
+						<div class="t-value">{throughput7}</div>
+					</div>
+					<div class="throughput-card">
+						<div class="t-label">Last 30 days</div>
+						<div class="t-value">{throughput30}</div>
+					</div>
+				</div>
+			</div>
 
-      <div class="chart-card">
-        <div class="chart-title">Aging by Status (Avg Days)</div>
-        <div class="aging-list">
-          <template for:each={agingByStatus} for:item="row">
-            <div key={row.label} class="aging-row">
-              <div class="aging-status">{row.label}</div>
-              <div class="aging-metrics">
-                <span class="aging-avg">{row.avgDays}</span>
-                <span class="aging-count">({row.count})</span>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
-    </div>
-  </div>
+			<div class="chart-card">
+				<div class="chart-title">Aging by Status (Avg Days)</div>
+				<div class="aging-list">
+					<template for:each={agingByStatus} for:item="row">
+						<div key={row.label} class="aging-row">
+							<div class="aging-status">{row.label}</div>
+							<div class="aging-metrics">
+								<span class="aging-avg">{row.avgDays}</span>
+								<span class="aging-count">({row.count})</span>
+							</div>
+						</div>
+					</template>
+				</div>
+			</div>
+
+			<!-- Recent Activity Feed -->
+			<div class="chart-card activity-feed-card">
+				<div class="chart-title">Recent Activity</div>
+				<c-activity-feed
+					team-id={selectedTeam}
+					limit-count="15"
+					height="350px"
+					ontaskselect={handleTaskSelect}
+				>
+				</c-activity-feed>
+			</div>
+		</div>
+	</div>
 </template>

@@ -1,0 +1,161 @@
+/* Activity Feed Component Styles */
+
+.activity-feed-container {
+    background: var(--lwc-colorBackground, white);
+    border-radius: 0.25rem;
+}
+
+.activity-timeline {
+    padding: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Filter and controls */
+.filter-combobox {
+    max-width: 250px;
+}
+
+.last-updated-text {
+    color: var(--po-text-secondary, #6b7280);
+    font-size: 0.75rem;
+    font-style: italic;
+    padding-top: 0.5rem;
+}
+
+/* Timeline customization */
+.slds-timeline__item_expandable {
+    margin-bottom: 1rem;
+}
+
+.slds-timeline__icon_success {
+    background-color: var(--po-status-5, #22c55e);
+}
+
+.slds-timeline__icon_warning {
+    background-color: var(--po-priority-high, #fb923c);
+}
+
+.slds-timeline__icon_error {
+    background-color: var(--po-priority-critical, #ef4444);
+}
+
+/* Activity text styling */
+.activity-text {
+    color: var(--po-text-primary, #1f2937);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Task link styling */
+.task-link {
+    color: var(--po-accent-1, #3b82f6);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.task-link:hover {
+    color: var(--po-accent-2, #2563eb);
+    text-decoration: underline;
+}
+
+/* Status badge */
+.status-badge {
+    font-size: 0.75rem;
+}
+
+/* Timeline date */
+.slds-timeline__date {
+    color: var(--po-text-secondary, #6b7280);
+    font-size: 0.75rem;
+}
+
+/* Empty state */
+.slds-illustration {
+    padding: 2rem;
+    text-align: center;
+}
+
+.slds-illustration h3 {
+    color: var(--po-text-primary, #1f2937);
+    margin-bottom: 0.5rem;
+}
+
+.slds-illustration p {
+    color: var(--po-text-secondary, #6b7280);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .activity-feed-container {
+        background: var(--lwc-colorBackgroundAlt, #1f2937);
+    }
+
+    .activity-text {
+        color: var(--po-text-primary, #f3f4f6);
+    }
+
+    .task-link {
+        color: var(--po-accent-1, #60a5fa);
+    }
+
+    .task-link:hover {
+        color: var(--po-accent-2, #93c5fd);
+    }
+
+    .slds-timeline__date {
+        color: var(--po-text-secondary, #d1d5db);
+    }
+
+    .slds-illustration h3 {
+        color: var(--po-text-primary, #f3f4f6);
+    }
+
+    .slds-illustration p {
+        color: var(--po-text-secondary, #d1d5db);
+    }
+}
+
+/* Scrollbar styling */
+.activity-timeline::-webkit-scrollbar {
+    width: 8px;
+}
+
+.activity-timeline::-webkit-scrollbar-track {
+    background: var(--lwc-colorBackgroundAlt, #f3f4f6);
+    border-radius: 4px;
+}
+
+.activity-timeline::-webkit-scrollbar-thumb {
+    background: var(--lwc-colorBorder, #d1d5db);
+    border-radius: 4px;
+}
+
+.activity-timeline::-webkit-scrollbar-thumb:hover {
+    background: var(--lwc-colorBorderActive, #9ca3af);
+}
+
+/* Loading state */
+.slds-is-relative {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .activity-timeline {
+        padding: 0.5rem;
+    }
+
+    .slds-timeline__item_expandable {
+        margin-bottom: 0.75rem;
+    }
+
+    .activity-text {
+        font-size: 0.8125rem;
+    }
+}

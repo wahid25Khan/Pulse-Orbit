@@ -75,6 +75,9 @@ export default class KanbanBoard extends LightningElement {
 	_moveHistory = [];
 	_redoStack = [];
 
+	// Accessibility: Focus management for modals
+	_previousActiveElement = null;
+
 	// PERF-001: Virtual scrolling config/state
 	enableVirtualScroll = true;
 	virtualRowHeight = 240; // px, estimated card wrapper height
@@ -363,8 +366,8 @@ export default class KanbanBoard extends LightningElement {
 
 	// Accessibility: ARIA label for screen readers
 	get darkModeAriaLabel() {
-		return this.isDarkMode 
-			? "Switch to light mode, currently in dark mode" 
+		return this.isDarkMode
+			? "Switch to light mode, currently in dark mode"
 			: "Switch to dark mode, currently in light mode";
 	}
 
@@ -508,11 +511,15 @@ export default class KanbanBoard extends LightningElement {
 		this.taskDrawerFocus = "details";
 		// Stop comment polling when drawer closes
 		this.stopCommentPolling();
+		// Accessibility: Restore focus to element that opened drawer
+		this.restoreFocus();
 	}
 
 	handleOpenFilterDrawer() {
 		this.handleCloseDrawer();
 		this.showFilterDrawer = true;
+		// Accessibility: Save focus and move to drawer
+		this.saveFocusAndFocusModal(".unified-drawer");
 	}
 
 	handleOpenNewTaskDrawer() {
@@ -541,6 +548,8 @@ export default class KanbanBoard extends LightningElement {
 		this.newParentSearchText = "";
 		this.parentTaskResultsNew = [];
 		this.showParentResultsNew = false;
+		// Accessibility: Save focus and move to drawer
+		this.saveFocusAndFocusModal(".unified-drawer");
 	}
 
 	handleCardClick(event) {
@@ -626,6 +635,9 @@ export default class KanbanBoard extends LightningElement {
 			// Load comments initially and start polling for updates
 			this.loadComments(taskId);
 			this.startCommentPolling(taskId);
+
+			// Accessibility: Save focus and move to drawer
+			this.saveFocusAndFocusModal(".unified-drawer");
 		} catch (error) {
 			logError("Error opening task drawer:", error);
 			showToast(this, "Error", "Unable to load task details.", "error");
@@ -890,6 +902,194 @@ export default class KanbanBoard extends LightningElement {
 		};
 
 		return updateTask(payload);
+	}
+
+	/**
+	 * Bulk update task priority
+	 * @param {Event} event - Change event with priority value
+	 */
+	async handleBulkPriorityChange(event) {
+		const newPriority = event.detail.value || event.target.value;
+		if (!newPriority || this.selectedTaskIds.size === 0) return;
+
+		const selectedIds = Array.from(this.selectedTaskIds);
+		const taskCount = selectedIds.length;
+
+		this.isBulkOperating = true;
+		try {
+			this._announce(`Updating priority for ${taskCount} tasks...`);
+			showToast(
+				this,
+				"Info",
+				`Updating priority for ${taskCount} task${taskCount > 1 ? "s" : ""}...`,
+				"info"
+			);
+
+			// Update tasks in parallel
+			const updatePromises = selectedIds.map((taskId) =>
+				this.updateTaskPriority(taskId, newPriority)
+			);
+
+			await Promise.all(updatePromises);
+
+			showToast(
+				this,
+				"Success",
+				`Successfully updated priority for ${taskCount} task${taskCount > 1 ? "s" : ""}`,
+				"success"
+			);
+
+			// Clear selection and refresh
+			this.handleClearSelection();
+			await this.refreshTasks();
+		} catch (error) {
+			logError("Bulk priority update error:", error);
+			const msg =
+				error?.body?.message || error?.message || "Failed to update task priority";
+			showToast(this, "Error", msg, "error");
+		} finally {
+			this.isBulkOperating = false;
+		}
+	}
+
+	/**
+	 * Helper to update a single task's priority
+	 * @param {String} taskId - Task ID
+	 * @param {String} newPriority - New priority value
+	 */
+	async updateTaskPriority(taskId, newPriority) {
+		const payload = {
+			Id: taskId,
+			TLG_Priority__c: newPriority,
+		};
+
+		return updateTask(payload);
+	}
+
+	/**
+	 * Bulk assign tasks to a project
+	 * @param {Event} event - Change event with project ID
+	 */
+	async handleBulkProjectAssign(event) {
+		const projectId = event.detail.value || event.target.value;
+		if (!projectId || this.selectedTaskIds.size === 0) return;
+
+		const selectedIds = Array.from(this.selectedTaskIds);
+		const taskCount = selectedIds.length;
+
+		this.isBulkOperating = true;
+		try {
+			this._announce(`Assigning ${taskCount} tasks to project...`);
+			showToast(
+				this,
+				"Info",
+				`Assigning ${taskCount} task${taskCount > 1 ? "s" : ""} to project...`,
+				"info"
+			);
+
+			// Update tasks in parallel
+			const updatePromises = selectedIds.map((taskId) =>
+				this.assignTaskToProject(taskId, projectId)
+			);
+
+			await Promise.all(updatePromises);
+
+			showToast(
+				this,
+				"Success",
+				`Successfully assigned ${taskCount} task${taskCount > 1 ? "s" : ""} to project`,
+				"success"
+			);
+
+			// Clear selection and refresh
+			this.handleClearSelection();
+			await this.refreshTasks();
+		} catch (error) {
+			logError("Bulk project assignment error:", error);
+			const msg =
+				error?.body?.message || error?.message || "Failed to assign tasks to project";
+			showToast(this, "Error", msg, "error");
+		} finally {
+			this.isBulkOperating = false;
+		}
+	}
+
+	/**
+	 * Helper to assign a single task to a project
+	 * @param {String} taskId - Task ID
+	 * @param {String} projectId - Project ID to assign
+	 */
+	async assignTaskToProject(taskId, projectId) {
+		const payload = {
+			Id: taskId,
+			TLG_Project__c: projectId,
+		};
+
+		return updateTask(payload);
+	}
+
+	/**
+	 * Bulk delete tasks with confirmation
+	 * @param {Event} event - Button click event
+	 */
+	async handleBulkDelete(event) {
+		if (this.selectedTaskIds.size === 0) return;
+
+		const selectedIds = Array.from(this.selectedTaskIds);
+		const taskCount = selectedIds.length;
+
+		// Show confirmation dialog
+		const confirmed = confirm(
+			`Are you sure you want to delete ${taskCount} task${taskCount > 1 ? "s" : ""}?\n\nThis action cannot be undone.`
+		);
+
+		if (!confirmed) return;
+
+		this.isBulkOperating = true;
+		try {
+			this._announce(`Deleting ${taskCount} tasks...`);
+			showToast(
+				this,
+				"Info",
+				`Deleting ${taskCount} task${taskCount > 1 ? "s" : ""}...`,
+				"info"
+			);
+
+			// Delete tasks in parallel
+			const deletePromises = selectedIds.map((taskId) =>
+				this.deleteTask(taskId)
+			);
+
+			await Promise.all(deletePromises);
+
+			showToast(
+				this,
+				"Success",
+				`Successfully deleted ${taskCount} task${taskCount > 1 ? "s" : ""}`,
+				"success"
+			);
+
+			// Clear selection and refresh
+			this.handleClearSelection();
+			await this.refreshTasks();
+		} catch (error) {
+			logError("Bulk delete error:", error);
+			const msg =
+				error?.body?.message || error?.message || "Failed to delete tasks";
+			showToast(this, "Error", msg, "error");
+		} finally {
+			this.isBulkOperating = false;
+		}
+	}
+
+	/**
+	 * Helper to delete a single task
+	 * @param {String} taskId - Task ID to delete
+	 */
+	async deleteTask(taskId) {
+		// Import deleteRecord from LDS
+		const { deleteRecord } = await import('lightning/uiRecordApi');
+		return deleteRecord(taskId);
 	}
 
 	// ============ Logged Time Helpers ============
@@ -1566,6 +1766,41 @@ export default class KanbanBoard extends LightningElement {
 		} catch (e) {
 			// No-op on errors
 		}
+	}
+
+	// Accessibility: Save current focus and set focus to modal
+	saveFocusAndFocusModal(modalSelector) {
+		this._previousActiveElement = document.activeElement;
+		// Use setTimeout to allow DOM to render the modal first
+		setTimeout(() => {
+			const modal = this.template.querySelector(modalSelector);
+			if (modal) {
+				// Try to focus first interactive element in modal
+				const firstFocusable = modal.querySelector(
+					'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+				);
+				if (firstFocusable) {
+					firstFocusable.focus();
+				} else {
+					// If no focusable element, focus the modal itself
+					modal.setAttribute("tabindex", "-1");
+					modal.focus();
+				}
+			}
+		}, 100);
+	}
+
+	// Accessibility: Restore focus to element that opened the modal
+	restoreFocus() {
+		if (this._previousActiveElement && this._previousActiveElement.focus) {
+			try {
+				this._previousActiveElement.focus();
+			} catch (e) {
+				// Element may no longer exist in DOM
+				logError("Could not restore focus:", e);
+			}
+		}
+		this._previousActiveElement = null;
 	}
 
 	handleDocumentClick(event) {
@@ -2364,9 +2599,10 @@ export default class KanbanBoard extends LightningElement {
 			column.toggleTitle = column.isCollapsed
 				? `Expand ${column.title}`
 				: `Collapse ${column.title}`;
+			// Accessibility: aria-expanded
+			column.isExpanded = !column.isCollapsed;
 		}
 	}
-
 	mapSalesforceTaskToCard(task) {
 		const statusValue = normalizeStatusValue(
 			task.TLG_Status__c || "Not Started"

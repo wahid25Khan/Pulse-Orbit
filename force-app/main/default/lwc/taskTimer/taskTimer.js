@@ -1,5 +1,9 @@
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { LightningElement, api, track } from "lwc";
+import {
+	getStorageJSON,
+	setStorageJSON,
+} from "c/kanbanBoard/storageUtils";
 
 const STORAGE_KEY = "pulseOrbit_taskTimers";
 const TIMER_INTERVAL = 1000; // Update every second
@@ -212,50 +216,40 @@ export default class TaskTimer extends LightningElement {
 	}
 
 	loadTimerState() {
-		try {
-			const timersJson = localStorage.getItem(STORAGE_KEY);
-			if (!timersJson) return;
+		const timers = getStorageJSON(STORAGE_KEY, {});
+		const timerData = timers[this.taskId];
 
-			const timers = JSON.parse(timersJson);
-			const timerData = timers[this.taskId];
+		if (timerData) {
+			this.elapsedSeconds = timerData.elapsedSeconds || 0;
+			this.isRunning = timerData.isRunning || false;
+			this.startTime = timerData.startTime || null;
 
-			if (timerData) {
-				this.elapsedSeconds = timerData.elapsedSeconds || 0;
-				this.isRunning = timerData.isRunning || false;
-				this.startTime = timerData.startTime || null;
-
-				// If timer was running, recalculate elapsed time
-				if (this.isRunning && this.startTime) {
-					this.elapsedSeconds = Math.floor(
-						(Date.now() - this.startTime) / 1000
-					);
-				}
+			// If timer was running, recalculate elapsed time
+			if (this.isRunning && this.startTime) {
+				this.elapsedSeconds = Math.floor(
+					(Date.now() - this.startTime) / 1000
+				);
 			}
-		} catch (e) {
-			console.error("Error loading timer state:", e);
 		}
 	}
 
 	saveTimerState() {
-		try {
-			const timersJson = localStorage.getItem(STORAGE_KEY);
-			const timers = timersJson ? JSON.parse(timersJson) : {};
+		const timers = getStorageJSON(STORAGE_KEY, {});
 
-			timers[this.taskId] = {
-				taskId: this.taskId,
-				taskName: this.taskName,
-				elapsedSeconds: this.elapsedSeconds,
-				isRunning: this.isRunning,
-				startTime: this.startTime,
-				lastUpdated: Date.now(),
-			};
+		timers[this.taskId] = {
+			taskId: this.taskId,
+			taskName: this.taskName,
+			elapsedSeconds: this.elapsedSeconds,
+			isRunning: this.isRunning,
+			startTime: this.startTime,
+			lastUpdated: Date.now(),
+		};
 
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(timers));
+		const saved = setStorageJSON(STORAGE_KEY, timers);
 
-			// Clean up old timers (> 7 days)
+		// Clean up old timers (> 7 days) if save was successful
+		if (saved) {
 			this.cleanupOldTimers(timers);
-		} catch (e) {
-			console.error("Error saving timer state:", e);
 		}
 	}
 
@@ -271,7 +265,7 @@ export default class TaskTimer extends LightningElement {
 		});
 
 		if (needsCleanup) {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(timers));
+			setStorageJSON(STORAGE_KEY, timers);
 		}
 	}
 

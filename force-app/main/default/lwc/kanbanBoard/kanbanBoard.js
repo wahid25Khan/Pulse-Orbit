@@ -50,6 +50,12 @@ import { formatDateForInput, formatDateISO, getTodayISO } from "./dateUtils";
 import { debounce } from "./debounceUtils";
 import { KanbanDataService } from "./kanbanDataService";
 import {
+	getStorageItem,
+	setStorageItem,
+	getStorageJSON,
+	setStorageJSON,
+} from "./storageUtils";
+import {
 	displayToMinutes,
 	minutesToDisplay,
 	normalizeDisplay,
@@ -1228,35 +1234,34 @@ export default class KanbanBoard extends LightningElement {
 		}
 		document.addEventListener("click", this._boundHandleDocumentClick);
 
-		// Initialize theme from localStorage or system preference
-		try {
-			const stored = window.localStorage.getItem("kanbanTheme");
-			if (stored === "dark") {
-				this.isDarkMode = true;
-			} else if (stored === "light") {
-				this.isDarkMode = false;
-			} else {
-				// Fallback to system preference
-				const prefersDark =
-					window.matchMedia &&
-					window.matchMedia("(prefers-color-scheme: dark)").matches;
-				this.isDarkMode = !!prefersDark;
-			}
-			const compact = window.localStorage.getItem("kanbanCompactView");
-			this.isCompactView = compact === "true";
-
-			// Load virtual scrolling preference (default true)
-			const vsPref = window.localStorage.getItem("kanbanVirtualScroll");
-			if (vsPref === "true") {
-				this.enableVirtualScroll = true;
-			} else if (vsPref === "false") {
-				this.enableVirtualScroll = false;
-			} // else leave default
-		} catch (e) {
-			// ignore storage or media errors
+	// Initialize theme from localStorage or system preference
+	try {
+		const stored = getStorageItem("kanbanTheme");
+		if (stored === "dark") {
+			this.isDarkMode = true;
+		} else if (stored === "light") {
+			this.isDarkMode = false;
+		} else {
+			// Fallback to system preference
+			const prefersDark =
+				window.matchMedia &&
+				window.matchMedia("(prefers-color-scheme: dark)").matches;
+			this.isDarkMode = !!prefersDark;
 		}
+		const compact = getStorageItem("kanbanCompactView");
+		this.isCompactView = compact === "true";
 
-		// UX-002: Keyboard shortcuts for undo/redo
+		// Load virtual scrolling preference (default true)
+		const vsPref = getStorageItem("kanbanVirtualScroll");
+		if (vsPref === "true") {
+			this.enableVirtualScroll = true;
+		} else if (vsPref === "false") {
+			this.enableVirtualScroll = false;
+		} // else leave default
+	} catch (e) {
+		// Fallback to system defaults if preferences can't be loaded
+		console.warn("Could not load user preferences from storage:", e);
+	}		// UX-002: Keyboard shortcuts for undo/redo
 		if (!this._boundHandleKeyDown) {
 			this._boundHandleKeyDown = this.handleKeyDown.bind(this);
 		}
@@ -3541,15 +3546,8 @@ export default class KanbanBoard extends LightningElement {
 		const newDarkMode = !this.isDarkMode;
 		this.isDarkMode = newDarkMode;
 
-		// Persist preference
-		try {
-			window.localStorage.setItem(
-				"kanbanTheme",
-				newDarkMode ? "dark" : "light"
-			);
-		} catch (e) {
-			// ignore storage errors
-		}
+		// Persist preference using safe storage utility
+		setStorageItem("kanbanTheme", newDarkMode ? "dark" : "light");
 
 		// Also notify parent (optional) in case layout wants to sync globally
 		this.dispatchEvent(
@@ -3565,11 +3563,7 @@ export default class KanbanBoard extends LightningElement {
 		event.stopPropagation();
 		const next = !this.isCompactView;
 		this.isCompactView = next;
-		try {
-			window.localStorage.setItem("kanbanCompactView", String(next));
-		} catch (e) {
-			/* ignore */
-		}
+		setStorageItem("kanbanCompactView", String(next));
 		showToast(
 			this,
 			"Success",
@@ -4415,14 +4409,10 @@ export default class KanbanBoard extends LightningElement {
 			event.stopPropagation();
 		}
 		this.enableVirtualScroll = !this.enableVirtualScroll;
-		try {
-			window.localStorage.setItem(
-				"kanbanVirtualScroll",
-				this.enableVirtualScroll ? "true" : "false"
-			);
-		} catch (e) {
-			/* ignore */
-		}
+		setStorageItem(
+			"kanbanVirtualScroll",
+			this.enableVirtualScroll ? "true" : "false"
+		);
 		if (!this.enableVirtualScroll) {
 			// Render all cards and clear spacers
 			this._columns = this._columns.map((col) => ({

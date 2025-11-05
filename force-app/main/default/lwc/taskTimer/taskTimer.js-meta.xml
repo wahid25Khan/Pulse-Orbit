@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>62.0</apiVersion>
+    <apiVersion>65.0</apiVersion>
     <description>Task Timer component with start/stop/reset and localStorage persistence</description>
     <isExposed>true</isExposed>
     <masterLabel>Task Timer</masterLabel>

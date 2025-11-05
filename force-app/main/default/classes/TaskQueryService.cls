@@ -1,8 +1,20 @@
 /**
  * @description Service class for handling task queries and search operations.
  * Provides methods for retrieving tasks with various filtering options.
+ * SECURITY: Uses strict input validation and whitelisting to prevent SOQL injection
  */
 public with sharing class TaskQueryService {
+
+    // Whitelist of allowed sort fields to prevent injection
+    private static final Set<String> ALLOWED_SORT_FIELDS = new Set<String>{
+        'Name', 'TLG_Status__c', 'TLG_Kanban_Sort_Order__c', 'TLG_Priority__c',
+        'TLG_Due_Date__c', 'CreatedDate', 'LastModifiedDate', 'TLG_Team__c'
+    };
+
+    // Whitelist of allowed sort orders
+    private static final Set<String> ALLOWED_SORT_ORDERS = new Set<String>{
+        'ASC', 'DESC'
+    };
 
     /**
      * @description Task query parameters class for flexible task querying
@@ -18,6 +30,35 @@ public with sharing class TaskQueryService {
         @AuraEnabled public Integer offset { get; set; }
         @AuraEnabled public String sortField { get; set; }
         @AuraEnabled public String sortOrder { get; set; }
+    }
+
+    /**
+     * @description Validate and sanitize sort field parameter
+     * @param sortField The sort field to validate
+     * @return Validated sort field or default
+     */
+    private static String validateSortField(String sortField) {
+        if (String.isBlank(sortField)) {
+            return 'TLG_Kanban_Sort_Order__c';
+        }
+        // Use whitelist instead of escaping for field names
+        if (ALLOWED_SORT_FIELDS.contains(sortField)) {
+            return sortField;
+        }
+        return 'TLG_Kanban_Sort_Order__c'; // Default fallback
+    }
+
+    /**
+     * @description Validate and sanitize sort order parameter
+     * @param sortOrder The sort order to validate
+     * @return Validated sort order or default
+     */
+    private static String validateSortOrder(String sortOrder) {
+        if (String.isBlank(sortOrder)) {
+            return 'ASC';
+        }
+        String upperOrder = sortOrder.toUpperCase();
+        return ALLOWED_SORT_ORDERS.contains(upperOrder) ? upperOrder : 'ASC';
     }
 
     /**
@@ -105,18 +146,19 @@ public with sharing class TaskQueryService {
         // Enforce object and field security for queried fields
         query += ' WITH SECURITY_ENFORCED';
 
-        // Add sorting
-        query += ' ORDER BY ' + (params.sortField != null ? String.escapeSingleQuotes(params.sortField) : 'TLG_Kanban_Sort_Order__c') +
-                 ' ' + (params.sortOrder != null ? String.escapeSingleQuotes(params.sortOrder) : 'ASC');
+        // Add sorting with validation
+        String validatedSortField = validateSortField(params.sortField);
+        String validatedSortOrder = validateSortOrder(params.sortOrder);
+        query += ' ORDER BY ' + validatedSortField + ' ' + validatedSortOrder;
 
-        // Add limits
-        if (params.limitCount != null && params.limitCount > 0) {
-            query += ' LIMIT ' + params.limitCount;
-        } else {
-            query += ' LIMIT 1000'; // Default limit
-        }
+        // Add limits with validation
+        Integer limit = (params.limitCount != null && params.limitCount > 0 && params.limitCount <= 2000) 
+            ? params.limitCount 
+            : 1000; // Default limit
+        query += ' LIMIT ' + limit;
 
-        if (params.offset != null && params.offset > 0) {
+        // Add offset with validation
+        if (params.offset != null && params.offset > 0 && params.offset < 2000) {
             query += ' OFFSET ' + params.offset;
         }
 
@@ -150,16 +192,14 @@ public with sharing class TaskQueryService {
         }
 
         fbQuery += ' WITH SECURITY_ENFORCED';
-        fbQuery += ' ORDER BY ' + (params.sortField != null ? String.escapeSingleQuotes(params.sortField) : 'TLG_Kanban_Sort_Order__c') +
-                 ' ' + (params.sortOrder != null ? String.escapeSingleQuotes(params.sortOrder) : 'ASC');
+        
+        // Use validated sorting for fallback query too
+        fbQuery += ' ORDER BY ' + validatedSortField + ' ' + validatedSortOrder;
+        
+        // Use validated limits for fallback query
+        fbQuery += ' LIMIT ' + limit;
 
-        if (params.limitCount != null && params.limitCount > 0) {
-            fbQuery += ' LIMIT ' + params.limitCount;
-        } else {
-            fbQuery += ' LIMIT 1000';
-        }
-
-        if (params.offset != null && params.offset > 0) {
+        if (params.offset != null && params.offset > 0 && params.offset < 2000) {
             fbQuery += ' OFFSET ' + params.offset;
         }
 

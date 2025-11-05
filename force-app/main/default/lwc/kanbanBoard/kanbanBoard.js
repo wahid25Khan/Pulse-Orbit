@@ -361,6 +361,13 @@ export default class KanbanBoard extends LightningElement {
 		return this.isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
 	}
 
+	// Accessibility: ARIA label for screen readers
+	get darkModeAriaLabel() {
+		return this.isDarkMode 
+			? "Switch to light mode, currently in dark mode" 
+			: "Switch to dark mode, currently in light mode";
+	}
+
 	get hasActiveFilters() {
 		return this.activeFilterCount > 0;
 	}
@@ -4098,7 +4105,31 @@ export default class KanbanBoard extends LightningElement {
 
 	// UX-002 + MIN-008: Keyboard handler (Ctrl+Z / Ctrl+Y + shortcuts)
 	handleKeyDown(event) {
-		// Avoid interfering with input fields
+		// Accessibility: Escape key to close modals/drawers
+		if (event.key === "Escape") {
+			if (this.showConfirmation) {
+				event.preventDefault();
+				this.handleConfirmationCancel();
+				return;
+			}
+			if (this.showDelayModal) {
+				event.preventDefault();
+				this.closeDelayModal();
+				return;
+			}
+			if (this.showUnifiedDrawer) {
+				event.preventDefault();
+				this.handleCloseDrawer();
+				return;
+			}
+			if (this.settingsMenuOpen) {
+				event.preventDefault();
+				this.settingsMenuOpen = false;
+				return;
+			}
+		}
+
+		// Avoid interfering with input fields for other shortcuts
 		const target = event.target;
 		const tag = (target?.tagName || "").toLowerCase();
 		if (tag === "input" || tag === "textarea" || target?.isContentEditable) {

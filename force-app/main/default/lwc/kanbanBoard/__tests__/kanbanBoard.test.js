@@ -114,4 +114,428 @@ describe('c-kanban-board', () => {
         expect(values).not.toContain('QA');
         expect(values).not.toContain('Foo');
     });
+
+    // ========== Bulk Actions Tests ==========
+    describe('Bulk Actions', () => {
+        it('should toggle bulk mode on and off', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            expect(element.isBulkMode).toBe(false);
+
+            element.handleToggleBulkMode();
+            expect(element.isBulkMode).toBe(true);
+
+            element.handleToggleBulkMode();
+            expect(element.isBulkMode).toBe(false);
+        });
+
+        it('should select and deselect tasks', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.toggleTaskSelection('task1');
+            expect(element.selectedTaskIds.has('task1')).toBe(true);
+
+            element.toggleTaskSelection('task1');
+            expect(element.selectedTaskIds.has('task1')).toBe(false);
+        });
+
+        it('should clear all selections', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.selectedTaskIds.add('task1');
+            element.selectedTaskIds.add('task2');
+            element.selectedTaskIds.add('task3');
+
+            element.handleClearSelection();
+            expect(element.selectedTaskIds.size).toBe(0);
+        });
+
+        it('should return correct selectedTaskCount', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.selectedTaskIds.add('task1');
+            element.selectedTaskIds.add('task2');
+
+            expect(element.selectedTaskCount).toBe(2);
+        });
+
+        it('should return correct hasSelectedTasks', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            expect(element.hasSelectedTasks).toBe(false);
+
+            element.selectedTaskIds.add('task1');
+            expect(element.hasSelectedTasks).toBe(true);
+        });
+
+        it('should clear selection when exiting bulk mode', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.isBulkMode = true;
+            element.selectedTaskIds.add('task1');
+            element.selectedTaskIds.add('task2');
+
+            element.handleToggleBulkMode();
+
+            expect(element.isBulkMode).toBe(false);
+            expect(element.selectedTaskIds.size).toBe(0);
+        });
+    });
+
+    // ========== Filter Tests ==========
+    describe('Filters', () => {
+        it('should toggle filter drawer open and closed', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            expect(element.showFilterDrawer).toBeFalsy();
+
+            element.handleOpenFilterDrawer();
+            expect(element.showFilterDrawer).toBe(true);
+
+            element.handleCloseDrawer();
+            expect(element.showFilterDrawer).toBe(false);
+        });
+
+        it('should apply quick filter correctly', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockEvent = {
+                currentTarget: {
+                    dataset: {
+                        filterKey: 'priority',
+                        filterValue: 'High'
+                    }
+                }
+            };
+
+            element.handleQuickFilter(mockEvent);
+
+            expect(element.currentFilters.priority).toBe('High');
+        });
+
+        it('should remove filter chip correctly', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.currentFilters = { priority: 'High', assignee: 'user1' };
+
+            const mockEvent = {
+                currentTarget: {
+                    dataset: {
+                        filterKey: 'priority'
+                    }
+                }
+            };
+
+            element.handleRemoveFilterChip(mockEvent);
+
+            expect(element.currentFilters.priority).toBeUndefined();
+            expect(element.currentFilters.assignee).toBe('user1');
+        });
+
+        it('should clear all filters', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.currentFilters = {
+                priority: 'High',
+                assignee: 'user1',
+                status: 'In Progress'
+            };
+
+            element.handleClearAllFilters();
+
+            expect(Object.keys(element.currentFilters).length).toBe(0);
+        });
+    });
+
+    // ========== Search Tests ==========
+    describe('Search', () => {
+        it('should update search term', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockEvent = {
+                target: { value: 'test search' }
+            };
+
+            element.handleSearchChange(mockEvent);
+
+            expect(element.searchTerm).toBe('test search');
+        });
+
+        it('should clear search', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.searchTerm = 'test';
+
+            element.handleClearSearch();
+
+            expect(element.searchTerm).toBe('');
+        });
+    });
+
+    // ========== Column Management Tests ==========
+    describe('Column Management', () => {
+        it('should toggle column expansion', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockColumn = {
+                id: 'col1',
+                isCollapsed: false
+            };
+
+            const mockEvent = {
+                currentTarget: {
+                    dataset: { columnId: 'col1' }
+                }
+            };
+
+            element._columns = [mockColumn];
+
+            element.handleColumnToggle(mockEvent);
+
+            expect(element._columns[0].isCollapsed).toBe(true);
+        });
+
+        it('should expand all columns', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element._columns = [
+                { id: 'col1', isCollapsed: true },
+                { id: 'col2', isCollapsed: true },
+                { id: 'col3', isCollapsed: false }
+            ];
+
+            element.handleExpandAll();
+
+            expect(element._columns.every(col => !col.isCollapsed)).toBe(true);
+        });
+
+        it('should collapse all columns', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element._columns = [
+                { id: 'col1', isCollapsed: false },
+                { id: 'col2', isCollapsed: false },
+                { id: 'col3', isCollapsed: true }
+            ];
+
+            element.handleCollapseAll();
+
+            expect(element._columns.every(col => col.isCollapsed)).toBe(true);
+        });
+    });
+
+    // ========== Drawer Management Tests ==========
+    describe('Drawer Management', () => {
+        it('should open task drawer', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockTask = {
+                Id: 'task1',
+                Name: 'Test Task',
+                TLG_Status__c: 'In Progress'
+            };
+
+            element.openTaskDrawer(mockTask);
+
+            expect(element.showTaskDrawer).toBe(true);
+            expect(element.selectedTaskId).toBe('task1');
+        });
+
+        it('should close drawer', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.showTaskDrawer = true;
+            element.showNewTaskDrawer = true;
+            element.showFilterDrawer = true;
+
+            element.handleCloseDrawer();
+
+            expect(element.showTaskDrawer).toBe(false);
+            expect(element.showNewTaskDrawer).toBe(false);
+            expect(element.showFilterDrawer).toBe(false);
+        });
+
+        it('should open new task drawer', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockEvent = {
+                detail: { status: 'In Progress' }
+            };
+
+            element.handleOpenNewTaskDrawer(mockEvent);
+
+            expect(element.showNewTaskDrawer).toBe(true);
+            expect(element.newTaskData.TLG_Status__c).toBe('In Progress');
+        });
+    });
+
+    // ========== Settings Tests ==========
+    describe('Settings', () => {
+        it('should toggle settings menu', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            expect(element.showSettingsMenu).toBeFalsy();
+
+            element.handleToggleSettings();
+            expect(element.showSettingsMenu).toBe(true);
+
+            element.handleToggleSettings();
+            expect(element.showSettingsMenu).toBe(false);
+        });
+
+        it('should toggle dark mode', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const initialMode = element.darkMode;
+
+            element.handleToggleDarkMode();
+
+            expect(element.darkMode).toBe(!initialMode);
+        });
+    });
+
+    // ========== Priority Options Tests ==========
+    describe('Priority Options', () => {
+        it('should return correct priority options', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const priorities = element.priorityOptions;
+
+            expect(priorities).toHaveLength(3);
+            expect(priorities.map(p => p.value)).toEqual(['High', 'Normal', 'Low']);
+        });
+    });
+
+    // ========== Task Data Validation Tests ==========
+    describe('Task Data Validation', () => {
+        it('should validate required fields', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const invalidTask = {
+                Name: ''
+            };
+
+            const isValid = element.validateTaskData(invalidTask);
+
+            expect(isValid).toBe(false);
+        });
+
+        it('should accept valid task data', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const validTask = {
+                Name: 'Valid Task',
+                TLG_Status__c: 'In Progress'
+            };
+
+            const isValid = element.validateTaskData(validTask);
+
+            expect(isValid).toBe(true);
+        });
+    });
+
+    // ========== Computed Properties Tests ==========
+    describe('Computed Properties', () => {
+        it('should return correct bulkActionLabel', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.selectedTaskIds = new Set();
+            expect(element.bulkActionLabel).toBe('0 tasks selected');
+
+            element.selectedTaskIds.add('task1');
+            element.selectedTaskIds = new Set(element.selectedTaskIds);
+            expect(element.bulkActionLabel).toBe('1 task selected');
+
+            element.selectedTaskIds.add('task2');
+            element.selectedTaskIds = new Set(element.selectedTaskIds);
+            expect(element.bulkActionLabel).toBe('2 tasks selected');
+        });
+
+        it('should return correct hasActiveFilters', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            element.currentFilters = {};
+            expect(element.hasActiveFilters).toBe(false);
+
+            element.currentFilters = { priority: 'High' };
+            expect(element.hasActiveFilters).toBe(true);
+        });
+    });
+
+    // ========== Error Handling Tests ==========
+    describe('Error Handling', () => {
+        it('should handle missing task ID gracefully', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockEvent = {
+                currentTarget: { dataset: {} }
+            };
+
+            expect(() => element.handleTaskSelect(mockEvent)).not.toThrow();
+        });
+
+        it('should handle invalid column ID gracefully', () => {
+            const element = createElement('c-kanban-board', { is: KanbanBoard });
+            element.disableAutoInit = true;
+            document.body.appendChild(element);
+
+            const mockEvent = {
+                currentTarget: { dataset: { columnId: 'invalid' } }
+            };
+
+            expect(() => element.handleColumnToggle(mockEvent)).not.toThrow();
+        });
+    });
 });

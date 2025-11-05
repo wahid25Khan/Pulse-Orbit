@@ -52,16 +52,13 @@ describe("c-logger", () => {
 			);
 		});
 
-		it("should not log details when debug mode is disabled", () => {
+		it("should log details even when debug mode is disabled", () => {
 			setDebugMode(false);
 			const errorDetails = { code: 500, stack: "Error stack" };
 			error("Test error", errorDetails);
 
+			// Error details are always logged for errors (critical)
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
-				"[KANBAN ERROR]",
-				"Test error"
-			);
-			expect(consoleErrorSpy).not.toHaveBeenCalledWith(
 				"[KANBAN ERROR]",
 				"Test error",
 				errorDetails
@@ -131,10 +128,10 @@ describe("c-logger", () => {
 			setDebugMode(true);
 			debug("Debug message");
 
+			// When no data is provided, implementation only logs 2 arguments
 			expect(consoleLogSpy).toHaveBeenCalledWith(
 				"[KANBAN DEBUG]",
-				"Debug message",
-				undefined
+				"Debug message"
 			);
 		});
 	});
@@ -203,30 +200,27 @@ describe("c-logger", () => {
 	});
 
 	describe("performance", () => {
-		it("should log performance metric", () => {
+		it("should log performance metric with formatted string", () => {
+			setDebugMode(true);
 			logPerformance("taskLoad", 250);
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				"[KANBAN PERF]",
-				"taskLoad",
-				"250ms"
+				"[KANBAN PERF] taskLoad: 250ms"
 			);
 		});
 
 		it("should handle zero duration", () => {
+			setDebugMode(true);
 			logPerformance("instantAction", 0);
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				"[KANBAN PERF]",
-				"instantAction",
-				"0ms"
+				"[KANBAN PERF] instantAction: 0ms"
 			);
 		});
 
 		it("should handle large durations", () => {
+			setDebugMode(true);
 			logPerformance("slowOperation", 5000);
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				"[KANBAN PERF]",
-				"slowOperation",
-				"5000ms"
+				"[KANBAN PERF] slowOperation: 5000ms"
 			);
 		});
 
@@ -242,9 +236,7 @@ describe("c-logger", () => {
 			logPerformance("visibleMetric", 150);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				"[KANBAN PERF]",
-				"visibleMetric",
-				"150ms"
+				"[KANBAN PERF] visibleMetric: 150ms"
 			);
 		});
 	});

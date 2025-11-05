@@ -935,7 +935,9 @@ export default class KanbanBoard extends LightningElement {
 			showToast(
 				this,
 				"Success",
-				`Successfully updated priority for ${taskCount} task${taskCount > 1 ? "s" : ""}`,
+				`Successfully updated priority for ${taskCount} task${
+					taskCount > 1 ? "s" : ""
+				}`,
 				"success"
 			);
 
@@ -945,7 +947,9 @@ export default class KanbanBoard extends LightningElement {
 		} catch (error) {
 			logError("Bulk priority update error:", error);
 			const msg =
-				error?.body?.message || error?.message || "Failed to update task priority";
+				error?.body?.message ||
+				error?.message ||
+				"Failed to update task priority";
 			showToast(this, "Error", msg, "error");
 		} finally {
 			this.isBulkOperating = false;
@@ -997,7 +1001,9 @@ export default class KanbanBoard extends LightningElement {
 			showToast(
 				this,
 				"Success",
-				`Successfully assigned ${taskCount} task${taskCount > 1 ? "s" : ""} to project`,
+				`Successfully assigned ${taskCount} task${
+					taskCount > 1 ? "s" : ""
+				} to project`,
 				"success"
 			);
 
@@ -1007,7 +1013,9 @@ export default class KanbanBoard extends LightningElement {
 		} catch (error) {
 			logError("Bulk project assignment error:", error);
 			const msg =
-				error?.body?.message || error?.message || "Failed to assign tasks to project";
+				error?.body?.message ||
+				error?.message ||
+				"Failed to assign tasks to project";
 			showToast(this, "Error", msg, "error");
 		} finally {
 			this.isBulkOperating = false;
@@ -1040,7 +1048,9 @@ export default class KanbanBoard extends LightningElement {
 
 		// Show confirmation dialog
 		const confirmed = confirm(
-			`Are you sure you want to delete ${taskCount} task${taskCount > 1 ? "s" : ""}?\n\nThis action cannot be undone.`
+			`Are you sure you want to delete ${taskCount} task${
+				taskCount > 1 ? "s" : ""
+			}?\n\nThis action cannot be undone.`
 		);
 
 		if (!confirmed) return;
@@ -1088,7 +1098,7 @@ export default class KanbanBoard extends LightningElement {
 	 */
 	async deleteTask(taskId) {
 		// Import deleteRecord from LDS
-		const { deleteRecord } = await import('lightning/uiRecordApi');
+		const { deleteRecord } = await import("lightning/uiRecordApi");
 		return deleteRecord(taskId);
 	}
 

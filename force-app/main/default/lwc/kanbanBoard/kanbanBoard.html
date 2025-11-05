@@ -134,7 +134,9 @@
 										class="action-btn"
 										onclick={handleToggleSettingsMenu}
 										title="Settings"
-									aria-expanded={showSettingsMenu} aria-label="Settings menu" >
+										aria-expanded={showSettingsMenu}
+										aria-label="Settings menu"
+									>
 										<lightning-icon
 											icon-name="utility:settings"
 											size="xx-small"
@@ -382,7 +384,8 @@
 											onclick={handleColumnToggle}
 											data-column-id={column.id}
 											title={column.toggleTitle}
-										aria-expanded={column.isExpanded} >
+											aria-expanded={column.isExpanded}
+										>
 											<template if:true={column.isCollapsed}>
 												<lightning-icon
 													icon-name="utility:chevronright"
@@ -520,7 +523,8 @@
 							class="unified-drawer-close"
 							onclick={handleCloseDrawer}
 							title={closeButtonTitle}
-						aria-label="Close drawer" >
+							aria-label="Close drawer"
+						>
 							<lightning-icon
 								icon-name="utility:close"
 								size="small"
@@ -936,7 +940,9 @@
 											task-id={selectedTaskId}
 											task-name={editTaskData.Name}
 											onlogtime={handleTimerLogTime}
-										></c-task-timer>`n`t`t`t`t`t`t`t</div>
+										></c-task-timer
+										>`n`t`t`t`t`t`t`t
+									</div>
 
 									<div class="filter-section-content">
 										<template if:true={hasTeamOptions}>
@@ -1366,7 +1372,8 @@
 																	data-id={m.userId}
 																	onclick={handleRemoveMention}
 																	title="Remove mention"
-																aria-label="Remove mention" >
+																	aria-label="Remove mention"
+																>
 																	<lightning-icon
 																		icon-name="utility:close"
 																		size="xx-small"

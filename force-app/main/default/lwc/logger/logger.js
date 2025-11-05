@@ -12,7 +12,7 @@ let debugMode = false;
  * @param {boolean} enabled - Whether debug logging is enabled
  */
 export function setDebugMode(enabled) {
-    debugMode = enabled;
+	debugMode = enabled;
 }
 
 /**
@@ -20,7 +20,7 @@ export function setDebugMode(enabled) {
  * @returns {boolean}
  */
 export function isDebugMode() {
-    return debugMode;
+	return debugMode;
 }
 
 /**
@@ -29,13 +29,13 @@ export function isDebugMode() {
  * @param {*} data - Optional data to log
  */
 export function debug(message, data) {
-    if (debugMode) {
-        if (data !== undefined) {
-            console.log('[KANBAN DEBUG]', message, data);
-        } else {
-            console.log('[KANBAN DEBUG]', message);
-        }
-    }
+	if (debugMode) {
+		if (data !== undefined) {
+			console.log("[KANBAN DEBUG]", message, data);
+		} else {
+			console.log("[KANBAN DEBUG]", message);
+		}
+	}
 }
 
 /**
@@ -44,13 +44,13 @@ export function debug(message, data) {
  * @param {*} data - Optional data to log
  */
 export function info(message, data) {
-    if (debugMode) {
-        if (data !== undefined) {
-            console.info('[KANBAN INFO]', message, data);
-        } else {
-            console.info('[KANBAN INFO]', message);
-        }
-    }
+	if (debugMode) {
+		if (data !== undefined) {
+			console.info("[KANBAN INFO]", message, data);
+		} else {
+			console.info("[KANBAN INFO]", message);
+		}
+	}
 }
 
 /**
@@ -59,13 +59,13 @@ export function info(message, data) {
  * @param {*} data - Optional data to log
  */
 export function warn(message, data) {
-    if (debugMode) {
-        if (data !== undefined) {
-            console.warn('[KANBAN WARN]', message, data);
-        } else {
-            console.warn('[KANBAN WARN]', message);
-        }
-    }
+	if (debugMode) {
+		if (data !== undefined) {
+			console.warn("[KANBAN WARN]", message, data);
+		} else {
+			console.warn("[KANBAN WARN]", message);
+		}
+	}
 }
 
 /**
@@ -75,21 +75,21 @@ export function warn(message, data) {
  * @param {*} error - Optional error object
  */
 export function error(message, error) {
-    if (error !== undefined) {
-        console.error('[KANBAN ERROR]', message, error);
-        
-        // Log additional error details in debug mode
-        if (debugMode && error) {
-            if (error.body) {
-                console.error('[KANBAN ERROR] Error body:', error.body);
-            }
-            if (error.stack) {
-                console.error('[KANBAN ERROR] Stack trace:', error.stack);
-            }
-        }
-    } else {
-        console.error('[KANBAN ERROR]', message);
-    }
+	if (error !== undefined) {
+		console.error("[KANBAN ERROR]", message, error);
+
+		// Log additional error details in debug mode
+		if (debugMode && error) {
+			if (error.body) {
+				console.error("[KANBAN ERROR] Error body:", error.body);
+			}
+			if (error.stack) {
+				console.error("[KANBAN ERROR] Stack trace:", error.stack);
+			}
+		}
+	} else {
+		console.error("[KANBAN ERROR]", message);
+	}
 }
 
 /**
@@ -98,9 +98,9 @@ export function error(message, error) {
  * @param {number} duration - Duration in milliseconds
  */
 export function performance(operation, duration) {
-    if (debugMode) {
-        console.log(`[KANBAN PERF] ${operation}: ${duration}ms`);
-    }
+	if (debugMode) {
+		console.log(`[KANBAN PERF] ${operation}: ${duration}ms`);
+	}
 }
 
 /**
@@ -110,7 +110,7 @@ export function performance(operation, duration) {
  * @param {*} details - Action details
  */
 export function logAction(action, details) {
-    if (debugMode) {
-        console.log('[KANBAN ACTION]', action, details);
-    }
+	if (debugMode) {
+		console.log("[KANBAN ACTION]", action, details);
+	}
 }

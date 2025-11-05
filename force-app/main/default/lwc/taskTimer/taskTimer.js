@@ -1,9 +1,6 @@
+import { getStorageJSON, setStorageJSON } from "c/storageUtils";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { LightningElement, api, track } from "lwc";
-import {
-	getStorageJSON,
-	setStorageJSON,
-} from "c/kanbanBoard/storageUtils";
 
 const STORAGE_KEY = "pulseOrbit_taskTimers";
 const TIMER_INTERVAL = 1000; // Update every second
@@ -226,9 +223,7 @@ export default class TaskTimer extends LightningElement {
 
 			// If timer was running, recalculate elapsed time
 			if (this.isRunning && this.startTime) {
-				this.elapsedSeconds = Math.floor(
-					(Date.now() - this.startTime) / 1000
-				);
+				this.elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
 			}
 		}
 	}

@@ -20,12 +20,14 @@ import updateTaskOrder from "@salesforce/apex/KanbanBoardController.updateTaskOr
 import searchInternalUsersForTagging from "@salesforce/apex/TaskCommentService.searchInternalUsersForTagging";
 import searchPortalUsersForTagging from "@salesforce/apex/TaskCommentService.searchPortalUsersForTagging";
 import TLG_TASKFEED_OBJECT from "@salesforce/schema/TLG_TaskFeed__c";
+import { error as logError, warn as logWarn } from "c/logger";
 import {
 	isValidStatus,
 	normalizeStatusKey,
 	normalizeStatusValue,
 	statusEquals,
 } from "c/statusHelper";
+import { getStorageItem, setStorageItem } from "c/storageUtils";
 import { showToast } from "c/toastHelper";
 import {
 	getObjectInfo,
@@ -49,13 +51,6 @@ import {
 import { formatDateForInput, formatDateISO, getTodayISO } from "./dateUtils";
 import { debounce } from "./debounceUtils";
 import { KanbanDataService } from "./kanbanDataService";
-import {
-	getStorageItem,
-	setStorageItem,
-	getStorageJSON,
-	setStorageJSON,
-} from "./storageUtils";
-import { error as logError, warn as logWarn } from "./logger";
 import {
 	displayToMinutes,
 	minutesToDisplay,
@@ -1235,34 +1230,34 @@ export default class KanbanBoard extends LightningElement {
 		}
 		document.addEventListener("click", this._boundHandleDocumentClick);
 
-	// Initialize theme from localStorage or system preference
-	try {
-		const stored = getStorageItem("kanbanTheme");
-		if (stored === "dark") {
-			this.isDarkMode = true;
-		} else if (stored === "light") {
-			this.isDarkMode = false;
-		} else {
-			// Fallback to system preference
-			const prefersDark =
-				window.matchMedia &&
-				window.matchMedia("(prefers-color-scheme: dark)").matches;
-			this.isDarkMode = !!prefersDark;
-		}
-		const compact = getStorageItem("kanbanCompactView");
-		this.isCompactView = compact === "true";
+		// Initialize theme from localStorage or system preference
+		try {
+			const stored = getStorageItem("kanbanTheme");
+			if (stored === "dark") {
+				this.isDarkMode = true;
+			} else if (stored === "light") {
+				this.isDarkMode = false;
+			} else {
+				// Fallback to system preference
+				const prefersDark =
+					window.matchMedia &&
+					window.matchMedia("(prefers-color-scheme: dark)").matches;
+				this.isDarkMode = !!prefersDark;
+			}
+			const compact = getStorageItem("kanbanCompactView");
+			this.isCompactView = compact === "true";
 
-		// Load virtual scrolling preference (default true)
-		const vsPref = getStorageItem("kanbanVirtualScroll");
-		if (vsPref === "true") {
-			this.enableVirtualScroll = true;
-		} else if (vsPref === "false") {
-			this.enableVirtualScroll = false;
-		} // else leave default
-	} catch (e) {
-		// Fallback to system defaults if preferences can't be loaded
-		logWarn("Could not load user preferences from storage:", e);
-	}		// UX-002: Keyboard shortcuts for undo/redo
+			// Load virtual scrolling preference (default true)
+			const vsPref = getStorageItem("kanbanVirtualScroll");
+			if (vsPref === "true") {
+				this.enableVirtualScroll = true;
+			} else if (vsPref === "false") {
+				this.enableVirtualScroll = false;
+			} // else leave default
+		} catch (e) {
+			// Fallback to system defaults if preferences can't be loaded
+			logWarn("Could not load user preferences from storage:", e);
+		} // UX-002: Keyboard shortcuts for undo/redo
 		if (!this._boundHandleKeyDown) {
 			this._boundHandleKeyDown = this.handleKeyDown.bind(this);
 		}

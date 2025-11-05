@@ -1503,7 +1503,8 @@
 
 /* Make active input stacks above neighbors (fixes combobox menu behind fields) */
 .filter-form-group:focus-within {
-  z-index: 10000; /* High layer for dropdowns and modals */
+  z-index: 10000;
+  /* High layer for dropdowns and modals */
   position: relative;
   /* Ensure dropdowns appear above everything including drawer content */
 }
@@ -1515,7 +1516,8 @@
 }
 
 .filter-form-group:focus-within lightning-combobox {
-  z-index: 10000; /* High layer for dropdowns and modals */
+  z-index: 10000;
+  /* High layer for dropdowns and modals */
   position: relative;
 }
 
@@ -1523,13 +1525,15 @@
 .filter-form-group:focus-within lightning-input[type="date"],
 .filter-form-group:focus-within lightning-input[type="datetime"],
 .filter-form-group:focus-within lightning-input[type="time"] {
-  z-index: 10000; /* High layer for dropdowns and modals */
+  z-index: 10000;
+  /* High layer for dropdowns and modals */
   position: relative;
 }
 
 /* Override Lightning base styles to prevent clipping */
 .unified-drawer-content .filter-form-group lightning-combobox::part(dropdown) {
-  z-index: 10000; /* High layer for dropdowns and modals */
+  z-index: 10000;
+  /* High layer for dropdowns and modals */
 }
 
 /* Ensure the dropdown container itself is elevated */

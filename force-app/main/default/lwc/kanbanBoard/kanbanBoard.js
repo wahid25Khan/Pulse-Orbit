@@ -55,6 +55,7 @@ import {
 	getStorageJSON,
 	setStorageJSON,
 } from "./storageUtils";
+import { error as logError, warn as logWarn } from "./logger";
 import {
 	displayToMinutes,
 	minutesToDisplay,
@@ -624,7 +625,7 @@ export default class KanbanBoard extends LightningElement {
 			this.loadComments(taskId);
 			this.startCommentPolling(taskId);
 		} catch (error) {
-			console.error("Error opening task drawer:", error);
+			logError("Error opening task drawer:", error);
 			showToast(this, "Error", "Unable to load task details.", "error");
 		}
 	}
@@ -801,7 +802,7 @@ export default class KanbanBoard extends LightningElement {
 			this.handleClearSelection();
 			await this.refreshTasks();
 		} catch (error) {
-			console.error("Bulk status update error:", error);
+			logError("Bulk status update error:", error);
 			const msg =
 				error?.body?.message || error?.message || "Failed to update tasks";
 			showToast(this, "Error", msg, "error");
@@ -866,7 +867,7 @@ export default class KanbanBoard extends LightningElement {
 			this.handleClearSelection();
 			await this.refreshTasks();
 		} catch (error) {
-			console.error("Bulk assignment error:", error);
+			logError("Bulk assignment error:", error);
 			const msg =
 				error?.body?.message || error?.message || "Failed to assign tasks";
 			showToast(this, "Error", msg, "error");
@@ -1049,7 +1050,7 @@ export default class KanbanBoard extends LightningElement {
 			// Normal create
 			await this.persistLoggedTime();
 		} catch (error) {
-			console.error("Error submitting time log:", error);
+			logError("Error submitting time log:", error);
 			const msg =
 				error?.body?.message || error?.message || "Failed to submit time log";
 			showToast(this, "Error", msg, "error");
@@ -1223,7 +1224,7 @@ export default class KanbanBoard extends LightningElement {
 		// Load initial board data
 		if (!this.disableAutoInit) {
 			this.loadInitialData().catch((error) => {
-				console.error("Unhandled error in loadInitialData:", error);
+				logError("Unhandled error in loadInitialData:", error);
 				// Error is already handled in loadInitialData() but this prevents unhandled promise rejection
 			});
 		}
@@ -1260,7 +1261,7 @@ export default class KanbanBoard extends LightningElement {
 		} // else leave default
 	} catch (e) {
 		// Fallback to system defaults if preferences can't be loaded
-		console.warn("Could not load user preferences from storage:", e);
+		logWarn("Could not load user preferences from storage:", e);
 	}		// UX-002: Keyboard shortcuts for undo/redo
 		if (!this._boundHandleKeyDown) {
 			this._boundHandleKeyDown = this.handleKeyDown.bind(this);
@@ -1670,9 +1671,9 @@ export default class KanbanBoard extends LightningElement {
 			this.error = error;
 
 			// Log error details for debugging
-			console.error("Error loading initial data:", error);
+			logError("Error loading initial data:", error);
 			if (error?.body) {
-				console.error("Error body:", JSON.stringify(error.body, null, 2));
+				logError("Error body:", JSON.stringify(error.body, null, 2));
 			}
 
 			// Extract message
@@ -1686,7 +1687,7 @@ export default class KanbanBoard extends LightningElement {
 					message = error;
 				}
 			} catch (e) {
-				console.error("Error extracting message:", e);
+				logError("Error extracting message:", e);
 			}
 
 			showToast(this, "Error", `Failed to load board: ${message}`, "error");
@@ -1699,7 +1700,7 @@ export default class KanbanBoard extends LightningElement {
 	 */
 	safeLoadInitialData() {
 		this.loadInitialData().catch((error) => {
-			console.error("Error in safeLoadInitialData:", error);
+			logError("Error in safeLoadInitialData:", error);
 			// Error already handled in loadInitialData()
 		});
 	}
@@ -1715,7 +1716,7 @@ export default class KanbanBoard extends LightningElement {
 				this.collapsedColumns = new Set(collapsedArray);
 			}
 		} catch (error) {
-			console.error("Error loading user preferences:", error);
+			logError("Error loading user preferences:", error);
 			// Continue with empty collapsed set if error
 			this.collapsedColumns = new Set();
 		}
@@ -1732,7 +1733,7 @@ export default class KanbanBoard extends LightningElement {
 				this.applyDynamicColors(colorConfigs);
 			}
 		} catch (error) {
-			console.error("Error loading dynamic colors:", error);
+			logError("Error loading dynamic colors:", error);
 			// Continue with default CSS colors if error
 		}
 	}
@@ -1958,14 +1959,14 @@ export default class KanbanBoard extends LightningElement {
 	handleLoadFailure(step, error) {
 		const message = error?.body?.message || error?.message || "Unknown error";
 		this.error = error;
-		console.error(`Kanban board failed while loading ${step}:`, error);
+		logError(`Kanban board failed while loading ${step}:`, error);
 		showToast(this, "Error", `Failed to load ${step}: ${message}`, "error");
 
 		try {
 			const defaultColumns = this.createDefaultStatusColumns();
 			this.processAndSetData(defaultColumns, []);
 		} catch (fallbackError) {
-			console.error("Fallback column rendering failed:", fallbackError);
+			logError("Fallback column rendering failed:", fallbackError);
 		}
 	}
 
@@ -1978,7 +1979,7 @@ export default class KanbanBoard extends LightningElement {
 			}
 		} catch (error) {
 			// Do not block board load when context call fails; fall back to legacy method
-			console.warn("Unable to load current user context via Apex:", error);
+			logWarn("Unable to load current user context via Apex:", error);
 		}
 
 		let userId = context.userId || context.UserId || context.id || "";
@@ -1993,7 +1994,7 @@ export default class KanbanBoard extends LightningElement {
 				const fallbackId = await getCurrentUserId();
 				userId = fallbackId || "";
 			} catch (error) {
-				console.error("Error getting current user ID fallback:", error);
+				logError("Error getting current user ID fallback:", error);
 				userId = "";
 			}
 		}
@@ -3285,7 +3286,7 @@ export default class KanbanBoard extends LightningElement {
 			const collapsedStatusNames = Array.from(this.collapsedColumns).join(",");
 			await saveUserPreferences({ collapsedColumns: collapsedStatusNames });
 		} catch (error) {
-			console.error("Error saving user preferences:", error);
+			logError("Error saving user preferences:", error);
 			// Silently fail - don't show error toast for background save
 		}
 	}
@@ -3510,7 +3511,7 @@ export default class KanbanBoard extends LightningElement {
 				"success"
 			);
 		} catch (error) {
-			console.error("Error refreshing board:", error);
+			logError("Error refreshing board:", error);
 			showToast(
 				this,
 				"Error",
@@ -3772,13 +3773,13 @@ export default class KanbanBoard extends LightningElement {
 		this._draggedCardId = null;
 
 		if (!cardId) {
-			console.warn("Drop failed: No card ID available");
+			logWarn("Drop failed: No card ID available");
 			return;
 		}
 
 		const targetColumnId = zone ? zone.dataset.columnId : null;
 		if (!targetColumnId) {
-			console.warn("Drop failed: No target column ID");
+			logWarn("Drop failed: No target column ID");
 			return;
 		}
 

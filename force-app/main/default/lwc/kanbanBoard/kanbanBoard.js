@@ -20,7 +20,7 @@ import updateTaskOrder from "@salesforce/apex/KanbanBoardController.updateTaskOr
 import searchInternalUsersForTagging from "@salesforce/apex/TaskCommentService.searchInternalUsersForTagging";
 import searchPortalUsersForTagging from "@salesforce/apex/TaskCommentService.searchPortalUsersForTagging";
 import TLG_TASKFEED_OBJECT from "@salesforce/schema/TLG_TaskFeed__c";
-import { error as logError, warn as logWarn } from "c/logger";
+import { error as logError, warn as logWarn, info as logInfo } from "c/logger";
 import {
 	isValidStatus,
 	normalizeStatusKey,
@@ -29,6 +29,15 @@ import {
 } from "c/statusHelper";
 import { getStorageItem, setStorageItem } from "c/storageUtils";
 import { showToast } from "c/toastHelper";
+import {
+	offlineManager,
+	OPERATION_TYPES,
+	isOnline,
+	isOffline,
+	getQueueLength,
+	cacheData,
+	getCachedData,
+} from "c/offlineManager";
 import {
 	getObjectInfo,
 	getPicklistValuesByRecordType,
@@ -258,6 +267,12 @@ export default class KanbanBoard extends LightningElement {
 		onCancel: null,
 	};
 	_hasUnsavedChanges = false;
+
+	// Offline Support state (MAJ-005)
+	@track isOfflineMode = false;
+	@track offlineQueueLength = 0;
+	@track showOfflineBanner = true;
+	_offlineUnsubscribe = null; // Unsubscribe function for offline listener
 
 	// Computed properties for UI
 	get hasCustomColumnOrdering() {
@@ -1447,6 +1462,9 @@ export default class KanbanBoard extends LightningElement {
 		}
 		document.addEventListener("click", this._boundHandleDocumentClick);
 
+		// MAJ-005: Initialize offline manager
+		this._setupOfflineManager();
+
 		// Initialize theme from localStorage or system preference
 		try {
 			const stored = getStorageItem("kanbanTheme");
@@ -1589,6 +1607,197 @@ export default class KanbanBoard extends LightningElement {
 
 		// Stop comment polling and clear interval
 		this.stopCommentPolling();
+
+		// MAJ-005: Cleanup offline manager
+		if (this._offlineUnsubscribe) {
+			this._offlineUnsubscribe();
+			this._offlineUnsubscribe = null;
+		}
+	}
+
+	// =====================
+	// MAJ-005: OFFLINE MANAGER METHODS
+	// =====================
+
+	/**
+	 * Setup offline manager and listeners
+	 */
+	_setupOfflineManager() {
+		// Set initial online/offline state
+		this.isOfflineMode = isOffline();
+		this.offlineQueueLength = getQueueLength();
+
+		// Subscribe to network status changes
+		this._offlineUnsubscribe = offlineManager.addListener((status, details) => {
+			this.isOfflineMode = !details.isOnline;
+			this.offlineQueueLength = details.queueLength;
+
+			// Show appropriate toast
+			if (status === 'online') {
+				showToast(
+					this,
+					'Back Online',
+					this.offlineQueueLength > 0
+						? `Connection restored. Syncing ${this.offlineQueueLength} pending operations...`
+						: 'Connection restored',
+					'success',
+					'dismissible'
+				);
+
+				// Try to load cached data if needed
+				this._loadCachedData();
+			} else if (status === 'offline') {
+				showToast(
+					this,
+					'Offline Mode',
+					'You are currently offline. Changes will be queued and synced when connection is restored.',
+					'warning',
+					'sticky'
+				);
+			} else if (status === 'sync_completed') {
+				const { success, failed, remaining } = details;
+				if (success > 0) {
+					showToast(
+						this,
+						'Sync Complete',
+						`Successfully synced ${success} operation${success > 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`,
+						failed > 0 ? 'warning' : 'success',
+						'dismissible'
+					);
+
+					// Refresh board after sync
+					if (success > 0) {
+						this.safeLoadInitialData();
+					}
+				}
+
+				this.offlineQueueLength = remaining;
+			}
+		});
+
+		// Load cached data if offline
+		if (this.isOfflineMode) {
+			this._loadCachedData();
+		}
+
+		logInfo('[KANBAN] Offline manager initialized');
+	}
+
+	/**
+	 * Load cached data when offline
+	 */
+	_loadCachedData() {
+		try {
+			// Try to load cached tasks
+			const cachedTasks = getCachedData('tasks');
+			if (cachedTasks && Array.isArray(cachedTasks)) {
+				logInfo('[KANBAN] Loading cached tasks:', cachedTasks.length);
+				this._rawTasksData = cachedTasks;
+				this.organizeTasksByStatus();
+			}
+
+			// Try to load cached projects
+			const cachedProjects = getCachedData('projects');
+			if (cachedProjects && Array.isArray(cachedProjects)) {
+				this._projects = cachedProjects;
+			}
+
+			// Try to load cached users
+			const cachedUsers = getCachedData('users');
+			if (cachedUsers && Array.isArray(cachedUsers)) {
+				this.users = cachedUsers;
+			}
+		} catch (error) {
+			logError('[KANBAN] Error loading cached data:', error);
+		}
+	}
+
+	/**
+	 * Cache data for offline access
+	 */
+	async _cacheCurrentData() {
+		try {
+			if (this._rawTasksData && this._rawTasksData.length > 0) {
+				await cacheData('tasks', this._rawTasksData);
+			}
+			if (this._projects && this._projects.length > 0) {
+				await cacheData('projects', this._projects);
+			}
+			if (this.users && this.users.length > 0) {
+				await cacheData('users', this.users);
+			}
+			logInfo('[KANBAN] Data cached for offline access');
+		} catch (error) {
+			logError('[KANBAN] Error caching data:', error);
+		}
+	}
+
+	/**
+	 * Handle offline operation execution
+	 */
+	async _executeOfflineOperation(operation) {
+		logInfo('[KANBAN] Executing queued operation:', operation.type);
+
+		try {
+			switch (operation.type) {
+				case OPERATION_TYPES.CREATE_TASK:
+					return await this._createTaskFromQueue(operation.data);
+				case OPERATION_TYPES.UPDATE_TASK:
+					return await this._updateTaskFromQueue(operation.data);
+				case OPERATION_TYPES.DELETE_TASK:
+					return await this._deleteTaskFromQueue(operation.data);
+				case OPERATION_TYPES.MOVE_TASK:
+					return await this._moveTaskFromQueue(operation.data);
+				case OPERATION_TYPES.CREATE_COMMENT:
+					return await this._createCommentFromQueue(operation.data);
+				case OPERATION_TYPES.LOG_TIME:
+					return await this._logTimeFromQueue(operation.data);
+				case OPERATION_TYPES.BULK_UPDATE:
+					return await this._bulkUpdateFromQueue(operation.data);
+				default:
+					throw new Error(`Unknown operation type: ${operation.type}`);
+			}
+		} catch (error) {
+			logError('[KANBAN] Failed to execute queued operation:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Dismiss offline banner
+	 */
+	handleDismissOfflineBanner() {
+		this.showOfflineBanner = false;
+	}
+
+	/**
+	 * Manually trigger sync
+	 */
+	async handleSyncOfflineQueue() {
+		try {
+			showToast(this, 'Syncing', 'Syncing pending operations...', 'info');
+			const result = await offlineManager.syncQueue();
+			
+			if (result.success > 0) {
+				showToast(
+					this,
+					'Sync Complete',
+					`Successfully synced ${result.success} operation${result.success > 1 ? 's' : ''}`,
+					'success'
+				);
+				this.safeLoadInitialData();
+			} else if (result.failed > 0) {
+				showToast(
+					this,
+					'Sync Failed',
+					`${result.failed} operation${result.failed > 1 ? 's' : ''} failed to sync`,
+					'error'
+				);
+			}
+		} catch (error) {
+			logError('[KANBAN] Error syncing queue:', error);
+			showToast(this, 'Error', 'Failed to sync operations', 'error');
+		}
 	}
 
 	// =====================
@@ -2198,6 +2407,9 @@ export default class KanbanBoard extends LightningElement {
 
 			// Build team options from task dataset (unique team IDs)
 			this.updateTeamOptions();
+
+			// MAJ-005: Cache data for offline access
+			await this._cacheCurrentData();
 		} finally {
 			this.isLoading = false;
 		}

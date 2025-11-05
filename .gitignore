@@ -25,6 +25,10 @@ dist/
 
 # Backup files
 *.backup
+*.backup2
+
+# Temporary verification files
+temp-verify/
 
 # Ignore test output
 test-results/

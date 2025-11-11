@@ -151,11 +151,11 @@ public with sharing class TaskQueryService {
         String validatedSortOrder = validateSortOrder(params.sortOrder);
         query += ' ORDER BY ' + validatedSortField + ' ' + validatedSortOrder;
 
-        // Add limits with validation
-        Integer limit = (params.limitCount != null && params.limitCount > 0 && params.limitCount <= 2000) 
-            ? params.limitCount 
+        // Add limits with validation (avoid using reserved keyword name)
+        Integer rowLimit = (params.limitCount != null && params.limitCount > 0 && params.limitCount <= 2000)
+            ? params.limitCount
             : 1000; // Default limit
-        query += ' LIMIT ' + limit;
+        query += ' LIMIT ' + rowLimit;
 
         // Add offset with validation
         if (params.offset != null && params.offset > 0 && params.offset < 2000) {
@@ -197,7 +197,7 @@ public with sharing class TaskQueryService {
         fbQuery += ' ORDER BY ' + validatedSortField + ' ' + validatedSortOrder;
         
         // Use validated limits for fallback query
-        fbQuery += ' LIMIT ' + limit;
+    fbQuery += ' LIMIT ' + rowLimit;
 
         if (params.offset != null && params.offset > 0 && params.offset < 2000) {
             fbQuery += ' OFFSET ' + params.offset;

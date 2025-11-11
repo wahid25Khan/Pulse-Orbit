@@ -1,12 +1,16 @@
+import bulkUpdateTasks from "@salesforce/apex/KanbanBoardController.bulkUpdateTasks";
 import createLoggedTimeWithOptionalDelay from "@salesforce/apex/KanbanBoardController.createLoggedTimeWithOptionalDelay";
 import createTaskCommentFromMap from "@salesforce/apex/KanbanBoardController.createTaskCommentFromMap";
 import createTaskFromMap from "@salesforce/apex/KanbanBoardController.createTaskFromMap";
+import deleteTask from "@salesforce/apex/KanbanBoardController.deleteTask";
+import deleteTaskComment from "@salesforce/apex/KanbanBoardController.deleteTaskComment";
 import getAssignableUsers from "@salesforce/apex/KanbanBoardController.getAssignableUsers";
 import getCurrentUserContext from "@salesforce/apex/KanbanBoardController.getCurrentUserContext";
 import getCurrentUserId from "@salesforce/apex/KanbanBoardController.getCurrentUserId";
 import getProjects from "@salesforce/apex/KanbanBoardController.getProjects";
 import getStatusColors from "@salesforce/apex/KanbanBoardController.getStatusColors";
 import getTaskCommentsAsMaps from "@salesforce/apex/KanbanBoardController.getTaskCommentsAsMaps";
+import getTaskFiles from "@salesforce/apex/KanbanBoardController.getTaskFiles";
 import getTasks from "@salesforce/apex/KanbanBoardController.getTasks";
 import getTeamFromTasks from "@salesforce/apex/KanbanBoardController.getTeamFromTasks";
 import getTeamStatuses from "@salesforce/apex/KanbanBoardController.getTeamStatuses";
@@ -15,50 +19,19 @@ import getUserPreferences from "@salesforce/apex/KanbanBoardController.getUserPr
 import moveTask from "@salesforce/apex/KanbanBoardController.moveTask";
 import saveUserPreferences from "@salesforce/apex/KanbanBoardController.saveUserPreferences";
 import searchCases from "@salesforce/apex/KanbanBoardController.searchCases";
+import updateTaskComment from "@salesforce/apex/KanbanBoardController.updateTaskComment";
 import updateTaskFromMap from "@salesforce/apex/KanbanBoardController.updateTaskFromMap";
 import updateTaskOrder from "@salesforce/apex/KanbanBoardController.updateTaskOrder";
 import searchInternalUsersForTagging from "@salesforce/apex/TaskCommentService.searchInternalUsersForTagging";
 import searchPortalUsersForTagging from "@salesforce/apex/TaskCommentService.searchPortalUsersForTagging";
 import TLG_TASKFEED_OBJECT from "@salesforce/schema/TLG_TaskFeed__c";
-import { error as logError, warn as logWarn, info as logInfo } from "c/logger";
-import {
-	isValidStatus,
-	normalizeStatusKey,
-	normalizeStatusValue,
-	statusEquals,
-} from "c/statusHelper";
-import { getStorageItem, setStorageItem } from "c/storageUtils";
+import { isValidStatus, normalizeStatusValue } from "c/statusHelper";
 import { showToast } from "c/toastHelper";
-import {
-	offlineManager,
-	OPERATION_TYPES,
-	isOnline,
-	isOffline,
-	getQueueLength,
-	cacheData,
-	getCachedData,
-} from "c/offlineManager";
 import {
 	getObjectInfo,
 	getPicklistValuesByRecordType,
 } from "lightning/uiObjectInfoApi";
 import { api, LightningElement, track, wire } from "lwc";
-import {
-	COLOR_BIT_SHIFT_GREEN,
-	COLOR_BIT_SHIFT_RED,
-	COLOR_MAX_VALUE,
-	COMMENT_POLLING_INTERVAL_MS,
-	FOCUS_DELAY_MS,
-	HEX_COLOR_BASE,
-	HEX_COLOR_PAD_LENGTH,
-	MAX_COMPLETION_PERCENT,
-	MAX_UNDO_HISTORY_SIZE,
-	PROGRESS_PERCENT_OPTIONS,
-	SEARCH_DEBOUNCE_MS,
-	SEARCH_MAX_RESULTS,
-} from "./constants";
-import { formatDateForInput, formatDateISO, getTodayISO } from "./dateUtils";
-import { debounce } from "./debounceUtils";
 import { KanbanDataService } from "./kanbanDataService";
 import {
 	displayToMinutes,
@@ -76,31 +49,15 @@ export default class KanbanBoard extends LightningElement {
 	@track isPortalUser = false;
 	@track _movingCardIds = new Set(); // Track cards being moved
 
-	// UX-002: Undo banner state
-	@track showUndoBanner = false;
-	@track undoMessage = "";
-	_undoTimerId = null;
-	_lastMove = null;
-	_moveHistory = [];
-	_redoStack = [];
-
-	// Accessibility: Focus management for modals
-	_previousActiveElement = null;
-
-	// PERF-001: Virtual scrolling config/state
-	enableVirtualScroll = true;
-	virtualRowHeight = 240; // px, estimated card wrapper height
-	virtualBuffer = 3; // rows buffer before/after viewport
-	_minVirtualCards = 50; // threshold per column to enable virtualization
-	_boundHandleWindowScroll = null;
-	_boundHandleWindowResize = null;
-
 	@track _projects = [];
 	@track users = [];
 
 	@track selectedTeamId = "";
 	@track selectedAssignedToId = "";
 	@track selectedProjectId = "";
+	@track selectedCategoryId = "";
+	@track selectedStatusId = "";
+	@track selectedPriorityId = "";
 	// Tracks if the user explicitly changed the Assigned To filter (so selecting a project can show all tickets by default)
 	@track userAdjustedAssignedTo = false;
 	@track startDate = "";
@@ -109,13 +66,13 @@ export default class KanbanBoard extends LightningElement {
 	@track assignableUsersOptions = [];
 	@track projectOptions = [];
 	@track showFilterDrawer = false;
+	@track showTimeLogDrawer = false;
 	@track activeFilterCount = 0;
 	@track showSettingsMenu = false;
 	@track collapsedColumns = new Set(); // Track which columns are collapsed by ID
-	@track manuallyCollapsedColumns = new Set(); // Track user's manual collapse choices
-	@track manuallyExpandedColumns = new Set(); // Track user's manual expand choices
 	@track selectedNav = "kanban"; // sidebar active item
 	@track isCompactView = false; // compact density toggle
+	@track isSidebarCollapsed = false; // sidebar collapse state
 
 	@api isDarkMode = false;
 	@api timeLogModalActive = false;
@@ -180,13 +137,6 @@ export default class KanbanBoard extends LightningElement {
 		TLG_Time_Spent__c: "0.00",
 	};
 	@track logErrors = {};
-	@track isSubmittingLogTime = false; // Prevent race conditions
-	// Priority normalization helper
-	normalizePriority(value) {
-		if (!value) return "";
-		const v = String(value).trim();
-		return v === "Medium" ? "Normal" : v;
-	}
 	@track timeAggregates = {
 		totalMinutes: 0,
 		totalCompletion: 0,
@@ -222,18 +172,32 @@ export default class KanbanBoard extends LightningElement {
 	@api newCommentText = "";
 	@track isPostingComment = false;
 	@track isLoadingComments = false;
-	_commentPollingInterval = null; // Interval ID for comment polling
-	_commentPollingFrequency = COMMENT_POLLING_INTERVAL_MS;
-	// Additional loading indicators
-	@track isRefreshingTimeAggregates = false;
-	@track isBulkOperating = false;
 	// Mentions UI state
 	@track mentionSearchText = "";
 	@track isSearchingMentions = false;
 	@track mentionResults = [];
 	@api selectedMentions = [];
 	@track taskDrawerFocus = "details";
-	@track showTimeLogSection = false;
+	// File upload state
+	@track taskFiles = [];
+	@track isUploadingFile = false;
+	// Bulk operations state
+	@track selectedTaskIds = new Set();
+	@track isBulkMode = false;
+	@track showBulkAssignModal = false;
+	@track showBulkStatusModal = false;
+	@track showBulkPriorityModal = false;
+	@track bulkAssignUserId = "";
+	@track bulkStatusValue = "";
+	@track bulkPriorityValue = "";
+
+	// Column sorting state
+	@track sortedColumnId = null;
+	@track sortDirection = "asc";
+
+	get selectedCount() {
+		return this.selectedTaskIds.size;
+	}
 
 	// Internal state for drag and filters
 	_draggedCardId = null;
@@ -241,38 +205,6 @@ export default class KanbanBoard extends LightningElement {
 	_originalTasks = null; // Store original unfiltered tasks
 	_allTasks = []; // Current (possibly filtered) task collection
 	_rawTasksData = []; // Raw Salesforce task data for re-processing
-
-	// Bulk operations state
-	selectedTaskIds = new Set(); // Track selected task IDs for bulk operations
-	_lastClickedTaskId = null; // Track last clicked task for shift-click range selection
-	@track isBulkMode = false; // Toggle bulk selection mode
-
-	// Quick Filters state (UX-006)
-	@track quickFilters = {
-		myTasks: false,
-		highPriority: false,
-		dueSoon: false,
-		overdue: false,
-		unassigned: false,
-	};
-
-	// Confirmation Dialog state (MIN-005)
-	@track showConfirmation = false;
-	@track confirmationConfig = {
-		title: "",
-		message: "",
-		confirmLabel: "Confirm",
-		cancelLabel: "Cancel",
-		onConfirm: null,
-		onCancel: null,
-	};
-	_hasUnsavedChanges = false;
-
-	// Offline Support state (MAJ-005)
-	@track isOfflineMode = false;
-	@track offlineQueueLength = 0;
-	@track showOfflineBanner = true;
-	_offlineUnsubscribe = null; // Unsubscribe function for offline listener
 
 	// Computed properties for UI
 	get hasCustomColumnOrdering() {
@@ -324,37 +256,26 @@ export default class KanbanBoard extends LightningElement {
 		return this.isLogTimeFocus ? "Log Time" : "Details";
 	}
 
-	// Bulk selection computed properties
-	get hasSelectedTasks() {
-		return this.selectedTaskIds.size > 0;
-	}
-
-	get selectedTaskCount() {
-		return this.selectedTaskIds.size;
-	}
-
-	get bulkActionLabel() {
-		const count = this.selectedTaskCount;
-		return count === 1 ? "1 task selected" : `${count} tasks selected`;
-	}
-
 	// Sidebar helpers
 	get navClassDashboard() {
-		return this.selectedNav === "dashboard" ? "active" : "";
+		return this.selectedNav === "dashboard"
+			? "sidebar-nav-item active"
+			: "sidebar-nav-item";
 	}
 
 	get navClassKanban() {
-		return this.selectedNav === "kanban" ? "active" : "";
+		return this.selectedNav === "kanban"
+			? "sidebar-nav-item active"
+			: "sidebar-nav-item";
 	}
 
 	get navClassTasks() {
-		return this.selectedNav === "tasks" ? "active" : "";
+		return this.selectedNav === "tasks"
+			? "sidebar-nav-item active"
+			: "sidebar-nav-item";
 	}
 
-	get themeToggleLabel() {
-		return this.isDarkMode ? "Light Mode" : "Dark Mode";
-	}
-
+	// View state helpers
 	get isDashboardView() {
 		return this.selectedNav === "dashboard";
 	}
@@ -367,89 +288,70 @@ export default class KanbanBoard extends LightningElement {
 		return this.selectedNav === "tasks";
 	}
 
+	get navClassTasks() {
+		return this.selectedNav === "tasks"
+			? "sidebar-nav-item active"
+			: "sidebar-nav-item";
+	}
+
+	// Bulk operations helpers
+	get bulkModeLabel() {
+		return this.isBulkMode ? "Cancel Bulk" : "Select Multiple";
+	}
+
+	get selectedCount() {
+		return this.selectedTaskIds.size;
+	}
+
+	get hasBulkSelection() {
+		return this.selectedTaskIds.size > 0;
+	}
+
+	get noBulkSelection() {
+		return this.selectedTaskIds.size === 0;
+	}
+
+	get bulkActionLabel() {
+		const count = this.selectedTaskIds.size;
+		return count === 0
+			? "No tasks selected"
+			: `${count} task${count > 1 ? "s" : ""} selected`;
+	}
+
+	get themeToggleLabel() {
+		return this.isDarkMode ? "Light Mode" : "Dark Mode";
+	}
+
+	get themeLabel() {
+		return this.isDarkMode ? "Light" : "Dark";
+	}
+
+	get themeIcon() {
+		return this.isDarkMode ? "utility:light_bulb" : "utility:moon";
+	}
+
+	get themeToggleTitle() {
+		return this.isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
+	}
+
+	get isDashboardView() {
+		return this.selectedNav === "dashboard";
+	}
+
 	get computedRootClass() {
 		let classes = ["kanban-root"];
 		if (this.isDarkMode) classes.push("dark-mode");
 		if (this.timeLogModalActive) classes.push("time-log-modal-active");
 		if (this.isCompactView) classes.push("compact");
+		if (this.isSidebarCollapsed) classes.push("sidebar-collapsed");
 		return classes.join(" ");
-	}
-
-	get darkModeTitle() {
-		return this.isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
-	}
-
-	// Accessibility: ARIA label for screen readers
-	get darkModeAriaLabel() {
-		return this.isDarkMode
-			? "Switch to light mode, currently in dark mode"
-			: "Switch to dark mode, currently in light mode";
 	}
 
 	get hasActiveFilters() {
 		return this.activeFilterCount > 0;
 	}
 
-	// Quick Filters computed properties (UX-006)
-	get activeQuickFilterCount() {
-		return Object.values(this.quickFilters).filter(Boolean).length;
-	}
-
-	get hasActiveQuickFilters() {
-		return this.activeQuickFilterCount > 0;
-	}
-
-	get quickFilterChips() {
-		return [
-			{
-				key: "myTasks",
-				label: "My Tasks",
-				active: this.quickFilters.myTasks,
-				chipClass: this.quickFilters.myTasks
-					? "quick-filter-chip active"
-					: "quick-filter-chip",
-				icon: "utility:user",
-			},
-			{
-				key: "highPriority",
-				label: "High Priority",
-				active: this.quickFilters.highPriority,
-				chipClass: this.quickFilters.highPriority
-					? "quick-filter-chip active"
-					: "quick-filter-chip",
-				icon: "utility:priority",
-			},
-			{
-				key: "dueSoon",
-				label: "Due Soon",
-				active: this.quickFilters.dueSoon,
-				chipClass: this.quickFilters.dueSoon
-					? "quick-filter-chip active"
-					: "quick-filter-chip",
-				icon: "utility:warning",
-			},
-			{
-				key: "overdue",
-				label: "Overdue",
-				active: this.quickFilters.overdue,
-				chipClass: this.quickFilters.overdue
-					? "quick-filter-chip active"
-					: "quick-filter-chip",
-				icon: "utility:error",
-			},
-			{
-				key: "unassigned",
-				label: "Unassigned",
-				active: this.quickFilters.unassigned,
-				chipClass: this.quickFilters.unassigned
-					? "quick-filter-chip active"
-					: "quick-filter-chip",
-				icon: "utility:question",
-			},
-		];
-	}
-
-	get teamColumns() {
+	get columns() {
 		return this._columns;
 	}
 
@@ -472,7 +374,11 @@ export default class KanbanBoard extends LightningElement {
 	}
 
 	get progressPercentOptions() {
-		return PROGRESS_PERCENT_OPTIONS;
+		const options = [];
+		for (let i = 0; i <= 100; i += 5) {
+			options.push({ label: `${i}%`, value: String(i) });
+		}
+		return options;
 	}
 
 	// UI helpers
@@ -522,19 +428,30 @@ export default class KanbanBoard extends LightningElement {
 		this.showFilterDrawer = false;
 		this.showNewTaskDrawer = false;
 		this.showTaskDrawer = false;
+		this.showTimeLogDrawer = false;
 		this.isEditingTask = false;
 		this.taskDrawerFocus = "details";
-		// Stop comment polling when drawer closes
-		this.stopCommentPolling();
-		// Accessibility: Restore focus to element that opened drawer
-		this.restoreFocus();
 	}
 
 	handleOpenFilterDrawer() {
 		this.handleCloseDrawer();
 		this.showFilterDrawer = true;
-		// Accessibility: Save focus and move to drawer
-		this.saveFocusAndFocusModal(".unified-drawer");
+	}
+
+	handleToggleSidebar(event) {
+		if (event) {
+			event.stopPropagation();
+		}
+		this.isSidebarCollapsed = !this.isSidebarCollapsed;
+		// Persist preference
+		try {
+			window.localStorage.setItem(
+				"kanbanSidebarCollapsed",
+				this.isSidebarCollapsed ? "true" : "false"
+			);
+		} catch (e) {
+			console.error("Failed to save sidebar state:", e);
+		}
 	}
 
 	handleOpenNewTaskDrawer() {
@@ -544,7 +461,7 @@ export default class KanbanBoard extends LightningElement {
 		this.newTaskData = {
 			Name: "",
 			TLG_Status__c: "Not Started",
-			TLG_Priority__c: "Normal",
+			TLG_Priority__c: "Medium",
 			TLG_Opportunity__c: "",
 			TLG_Team__c: "",
 			TLG_Assigned_To__c: "",
@@ -561,10 +478,22 @@ export default class KanbanBoard extends LightningElement {
 		this.caseResultsNew = [];
 		this.showCaseResultsNew = false;
 		this.newParentSearchText = "";
+	}
+
+	handleOpenTimeLogDrawer() {
+		this.handleCloseDrawer();
+		this.showTimeLogDrawer = true;
+		// Initialize log time data with current date
+		const today = new Date().toISOString().split("T")[0];
+		this.logTimeData = {
+			...this.logTimeData,
+			TLG_Date_Record__c: today,
+			Completion__c: this.logTimeData.Completion__c || 0,
+			TLG_Time_Spent__c: this.logTimeData.TLG_Time_Spent__c || "0.00",
+			TLG_Description__c: this.logTimeData.TLG_Description__c || "",
+		};
 		this.parentTaskResultsNew = [];
 		this.showParentResultsNew = false;
-		// Accessibility: Save focus and move to drawer
-		this.saveFocusAndFocusModal(".unified-drawer");
 	}
 
 	handleCardClick(event) {
@@ -584,14 +513,11 @@ export default class KanbanBoard extends LightningElement {
 			if (!task) return;
 
 			// Map task to editTaskData for editable display
-			const normalizedPriority = this.normalizePriority(
-				task.TLG_Priority__c || task.priority || ""
-			);
 			this.editTaskData = {
 				Id: task.Id,
 				Name: task.name || "",
 				TLG_Status__c: task.status || "",
-				TLG_Priority__c: normalizedPriority,
+				TLG_Priority__c: task.TLG_Priority__c || task.priority || "",
 				TLG_Category__c: task.TLG_Category__c || task.category || "",
 				TLG_Due_Date__c: task.TLG_Due_Date__c || task.dueDate || "",
 				Total_Estimated_Time__c:
@@ -633,42 +559,18 @@ export default class KanbanBoard extends LightningElement {
 			// Initialize Logged Time defaults
 			this.logTimeData = {
 				Completion__c: "",
-				TLG_Date_Record__c: getTodayISO(),
+				TLG_Date_Record__c: new Date().toISOString().split("T")[0],
 				TLG_Description__c: "",
 				TLG_Time_Spent__c: "0.00",
 			};
 			await this.refreshTimeAggregates();
 			this.updateRemainingEstimate();
-
-			// Set initial time log section visibility based on focus mode
-			this.showTimeLogSection = this.isLogTimeFocus;
-
 			if (this.isLogTimeFocus) {
 				this.scrollLogTimeSectionIntoView();
 			}
-
-			// Load comments initially and start polling for updates
-			this.loadComments(taskId);
-			this.startCommentPolling(taskId);
-
-			// Accessibility: Save focus and move to drawer
-			this.saveFocusAndFocusModal(".unified-drawer");
 		} catch (error) {
-			logError("Error opening task drawer:", error);
+			console.error("Error opening task drawer:", error);
 			showToast(this, "Error", "Unable to load task details.", "error");
-		}
-	}
-
-	// Toggle time logging section visibility
-	handleToggleTimeLog(event) {
-		event.stopPropagation();
-		this.showTimeLogSection = !this.showTimeLogSection;
-
-		// If showing time log section, scroll it into view
-		if (this.showTimeLogSection) {
-			setTimeout(() => {
-				this.scrollLogTimeSectionIntoView();
-			}, FOCUS_DELAY_MS);
 		}
 	}
 
@@ -683,443 +585,8 @@ export default class KanbanBoard extends LightningElement {
 		});
 	}
 
-	// ============ Bulk Operations ============
-
-	/**
-	 * Toggle bulk selection mode
-	 */
-	handleToggleBulkMode() {
-		this.isBulkMode = !this.isBulkMode;
-		if (!this.isBulkMode) {
-			// Clear selection when exiting bulk mode
-			this.selectedTaskIds.clear();
-			this._lastClickedTaskId = null;
-		}
-		this._announce(
-			this.isBulkMode
-				? "Bulk selection mode enabled"
-				: "Bulk selection mode disabled"
-		);
-	}
-
-	/**
-	 * Handle task selection (checkbox click or card click in bulk mode)
-	 * @param {Event} event - Click event
-	 */
-	handleTaskSelect(event) {
-		event.stopPropagation();
-		const taskId = event.currentTarget?.dataset?.taskId || event.detail?.taskId;
-		if (!taskId) return;
-
-		const isShiftClick = event.shiftKey;
-
-		if (isShiftClick && this._lastClickedTaskId) {
-			this.handleRangeSelection(taskId);
-		} else {
-			this.toggleTaskSelection(taskId);
-		}
-
-		this._lastClickedTaskId = taskId;
-	}
-
-	/**
-	 * Toggle selection of a single task
-	 * @param {String} taskId - Task ID to toggle
-	 */
-	toggleTaskSelection(taskId) {
-		if (this.selectedTaskIds.has(taskId)) {
-			this.selectedTaskIds.delete(taskId);
-		} else {
-			this.selectedTaskIds.add(taskId);
-		}
-		// Force reactivity update
-		this.selectedTaskIds = new Set(this.selectedTaskIds);
-	}
-
-	/**
-	 * Handle shift-click range selection
-	 * @param {String} endTaskId - End of range
-	 */
-	handleRangeSelection(endTaskId) {
-		const startTaskId = this._lastClickedTaskId;
-		const visibleTasks = this._allTasks;
-
-		const startIndex = visibleTasks.findIndex((t) => t.Id === startTaskId);
-		const endIndex = visibleTasks.findIndex((t) => t.Id === endTaskId);
-
-		if (startIndex === -1 || endIndex === -1) return;
-
-		const rangeStart = Math.min(startIndex, endIndex);
-		const rangeEnd = Math.max(startIndex, endIndex);
-
-		// Select all tasks in range
-		for (let i = rangeStart; i <= rangeEnd; i++) {
-			this.selectedTaskIds.add(visibleTasks[i].Id);
-		}
-
-		// Force reactivity update
-		this.selectedTaskIds = new Set(this.selectedTaskIds);
-		this._announce(`Selected ${rangeEnd - rangeStart + 1} tasks`);
-	}
-
-	/**
-	 * Select all visible tasks
-	 */
-	handleSelectAllTasks() {
-		this._allTasks.forEach((task) => {
-			this.selectedTaskIds.add(task.Id);
-		});
-		this.selectedTaskIds = new Set(this.selectedTaskIds);
-		this._announce(`Selected all ${this._allTasks.length} visible tasks`);
-	}
-
-	/**
-	 * Clear all selected tasks
-	 */
-	handleClearSelection() {
-		this.selectedTaskIds.clear();
-		this._lastClickedTaskId = null;
-		this.selectedTaskIds = new Set(this.selectedTaskIds);
-		this._announce("Selection cleared");
-	}
-
-	/**
-	 * Check if a task is selected
-	 * @param {String} taskId - Task ID to check
-	 * @returns {Boolean}
-	 */
-	isTaskSelected(taskId) {
-		return this.selectedTaskIds.has(taskId);
-	}
-
-	/**
-	 * Bulk update status for selected tasks
-	 * @param {Event} event - Change event with new status
-	 */
-	async handleBulkStatusUpdate(event) {
-		const newStatus = event.detail.value || event.target.value;
-		if (!newStatus || this.selectedTaskIds.size === 0) return;
-
-		const selectedIds = Array.from(this.selectedTaskIds);
-		const taskCount = selectedIds.length;
-
-		this.isBulkOperating = true;
-		try {
-			this._announce(`Updating status for ${taskCount} tasks...`);
-			showToast(
-				this,
-				"Info",
-				`Updating ${taskCount} task${taskCount > 1 ? "s" : ""}...`,
-				"info"
-			);
-
-			// Update tasks in parallel
-			const updatePromises = selectedIds.map((taskId) =>
-				this.updateTaskStatus(taskId, newStatus)
-			);
-
-			await Promise.all(updatePromises);
-
-			showToast(
-				this,
-				"Success",
-				`Successfully updated ${taskCount} task${taskCount > 1 ? "s" : ""}`,
-				"success"
-			);
-
-			// Clear selection and refresh
-			this.handleClearSelection();
-			await this.refreshTasks();
-		} catch (error) {
-			logError("Bulk status update error:", error);
-			const msg =
-				error?.body?.message || error?.message || "Failed to update tasks";
-			showToast(this, "Error", msg, "error");
-		} finally {
-			this.isBulkOperating = false;
-		}
-	}
-
-	/**
-	 * Helper to update a single task's status
-	 * @param {String} taskId - Task ID
-	 * @param {String} newStatus - New status value
-	 */
-	async updateTaskStatus(taskId, newStatus) {
-		const task = this._allTasks.find((t) => t.Id === taskId);
-		if (!task) return;
-
-		const payload = {
-			Id: taskId,
-			TLG_Status__c: newStatus,
-		};
-
-		return updateTask(payload);
-	}
-
-	/**
-	 * Bulk assign tasks to a user
-	 * @param {Event} event - Change event with user ID
-	 */
-	async handleBulkAssignment(event) {
-		const userId = event.detail.value || event.target.value;
-		if (!userId || this.selectedTaskIds.size === 0) return;
-
-		const selectedIds = Array.from(this.selectedTaskIds);
-		const taskCount = selectedIds.length;
-
-		this.isBulkOperating = true;
-		try {
-			this._announce(`Assigning ${taskCount} tasks...`);
-			showToast(
-				this,
-				"Info",
-				`Assigning ${taskCount} task${taskCount > 1 ? "s" : ""}...`,
-				"info"
-			);
-
-			// Update tasks in parallel
-			const updatePromises = selectedIds.map((taskId) =>
-				this.assignTask(taskId, userId)
-			);
-
-			await Promise.all(updatePromises);
-
-			showToast(
-				this,
-				"Success",
-				`Successfully assigned ${taskCount} task${taskCount > 1 ? "s" : ""}`,
-				"success"
-			);
-
-			// Clear selection and refresh
-			this.handleClearSelection();
-			await this.refreshTasks();
-		} catch (error) {
-			logError("Bulk assignment error:", error);
-			const msg =
-				error?.body?.message || error?.message || "Failed to assign tasks";
-			showToast(this, "Error", msg, "error");
-		} finally {
-			this.isBulkOperating = false;
-		}
-	}
-
-	/**
-	 * Helper to assign a single task to a user
-	 * @param {String} taskId - Task ID
-	 * @param {String} userId - User ID to assign
-	 */
-	async assignTask(taskId, userId) {
-		const payload = {
-			Id: taskId,
-			TLG_Assigned_To__c: userId,
-		};
-
-		return updateTask(payload);
-	}
-
-	/**
-	 * Bulk update task priority
-	 * @param {Event} event - Change event with priority value
-	 */
-	async handleBulkPriorityChange(event) {
-		const newPriority = event.detail.value || event.target.value;
-		if (!newPriority || this.selectedTaskIds.size === 0) return;
-
-		const selectedIds = Array.from(this.selectedTaskIds);
-		const taskCount = selectedIds.length;
-
-		this.isBulkOperating = true;
-		try {
-			this._announce(`Updating priority for ${taskCount} tasks...`);
-			showToast(
-				this,
-				"Info",
-				`Updating priority for ${taskCount} task${taskCount > 1 ? "s" : ""}...`,
-				"info"
-			);
-
-			// Update tasks in parallel
-			const updatePromises = selectedIds.map((taskId) =>
-				this.updateTaskPriority(taskId, newPriority)
-			);
-
-			await Promise.all(updatePromises);
-
-			showToast(
-				this,
-				"Success",
-				`Successfully updated priority for ${taskCount} task${
-					taskCount > 1 ? "s" : ""
-				}`,
-				"success"
-			);
-
-			// Clear selection and refresh
-			this.handleClearSelection();
-			await this.refreshTasks();
-		} catch (error) {
-			logError("Bulk priority update error:", error);
-			const msg =
-				error?.body?.message ||
-				error?.message ||
-				"Failed to update task priority";
-			showToast(this, "Error", msg, "error");
-		} finally {
-			this.isBulkOperating = false;
-		}
-	}
-
-	/**
-	 * Helper to update a single task's priority
-	 * @param {String} taskId - Task ID
-	 * @param {String} newPriority - New priority value
-	 */
-	async updateTaskPriority(taskId, newPriority) {
-		const payload = {
-			Id: taskId,
-			TLG_Priority__c: newPriority,
-		};
-
-		return updateTask(payload);
-	}
-
-	/**
-	 * Bulk assign tasks to a project
-	 * @param {Event} event - Change event with project ID
-	 */
-	async handleBulkProjectAssign(event) {
-		const projectId = event.detail.value || event.target.value;
-		if (!projectId || this.selectedTaskIds.size === 0) return;
-
-		const selectedIds = Array.from(this.selectedTaskIds);
-		const taskCount = selectedIds.length;
-
-		this.isBulkOperating = true;
-		try {
-			this._announce(`Assigning ${taskCount} tasks to project...`);
-			showToast(
-				this,
-				"Info",
-				`Assigning ${taskCount} task${taskCount > 1 ? "s" : ""} to project...`,
-				"info"
-			);
-
-			// Update tasks in parallel
-			const updatePromises = selectedIds.map((taskId) =>
-				this.assignTaskToProject(taskId, projectId)
-			);
-
-			await Promise.all(updatePromises);
-
-			showToast(
-				this,
-				"Success",
-				`Successfully assigned ${taskCount} task${
-					taskCount > 1 ? "s" : ""
-				} to project`,
-				"success"
-			);
-
-			// Clear selection and refresh
-			this.handleClearSelection();
-			await this.refreshTasks();
-		} catch (error) {
-			logError("Bulk project assignment error:", error);
-			const msg =
-				error?.body?.message ||
-				error?.message ||
-				"Failed to assign tasks to project";
-			showToast(this, "Error", msg, "error");
-		} finally {
-			this.isBulkOperating = false;
-		}
-	}
-
-	/**
-	 * Helper to assign a single task to a project
-	 * @param {String} taskId - Task ID
-	 * @param {String} projectId - Project ID to assign
-	 */
-	async assignTaskToProject(taskId, projectId) {
-		const payload = {
-			Id: taskId,
-			TLG_Project__c: projectId,
-		};
-
-		return updateTask(payload);
-	}
-
-	/**
-	 * Bulk delete tasks with confirmation
-	 * @param {Event} event - Button click event
-	 */
-	async handleBulkDelete(event) {
-		if (this.selectedTaskIds.size === 0) return;
-
-		const selectedIds = Array.from(this.selectedTaskIds);
-		const taskCount = selectedIds.length;
-
-		// Show confirmation dialog
-		const confirmed = confirm(
-			`Are you sure you want to delete ${taskCount} task${
-				taskCount > 1 ? "s" : ""
-			}?\n\nThis action cannot be undone.`
-		);
-
-		if (!confirmed) return;
-
-		this.isBulkOperating = true;
-		try {
-			this._announce(`Deleting ${taskCount} tasks...`);
-			showToast(
-				this,
-				"Info",
-				`Deleting ${taskCount} task${taskCount > 1 ? "s" : ""}...`,
-				"info"
-			);
-
-			// Delete tasks in parallel
-			const deletePromises = selectedIds.map((taskId) =>
-				this.deleteTask(taskId)
-			);
-
-			await Promise.all(deletePromises);
-
-			showToast(
-				this,
-				"Success",
-				`Successfully deleted ${taskCount} task${taskCount > 1 ? "s" : ""}`,
-				"success"
-			);
-
-			// Clear selection and refresh
-			this.handleClearSelection();
-			await this.refreshTasks();
-		} catch (error) {
-			logError("Bulk delete error:", error);
-			const msg =
-				error?.body?.message || error?.message || "Failed to delete tasks";
-			showToast(this, "Error", msg, "error");
-		} finally {
-			this.isBulkOperating = false;
-		}
-	}
-
-	/**
-	 * Helper to delete a single task
-	 * @param {String} taskId - Task ID to delete
-	 */
-	async deleteTask(taskId) {
-		// Import deleteRecord from LDS
-		const { deleteRecord } = await import("lightning/uiRecordApi");
-		return deleteRecord(taskId);
-	}
-
 	// ============ Logged Time Helpers ============
 	async refreshTimeAggregates() {
-		this.isRefreshingTimeAggregates = true;
 		try {
 			const agg = await getTimeLogAggregates(this.selectedTaskId);
 			this.timeAggregates = {
@@ -1133,8 +600,6 @@ export default class KanbanBoard extends LightningElement {
 				totalCompletion: 0,
 				entryCount: 0,
 			};
-		} finally {
-			this.isRefreshingTimeAggregates = false;
 		}
 	}
 
@@ -1176,35 +641,27 @@ export default class KanbanBoard extends LightningElement {
 		this.logTimeData = { ...this.logTimeData, [name]: value };
 	}
 
-	handleTimerLogTime(event) {
-		// Auto-fill time log form with timer data
-		const { elapsedHours, formattedTime, taskName } = event.detail;
+	handleTimeLogTaskSelect(event) {
+		const taskId = event.detail.value;
+		if (taskId) {
+			this.openTaskDrawer(taskId, "timelog");
+			this.showTimeLogDrawer = true;
+		}
+	}
 
-		// Convert elapsed hours to h.mm format (e.g., 1.5 hours = 1.30)
-		const hours = Math.floor(parseFloat(elapsedHours));
-		const decimalPart = parseFloat(elapsedHours) - hours;
-		const minutes = Math.round(decimalPart * 60);
-		const timeSpent = `${hours}.${String(minutes).padStart(2, "0")}`;
-
-		// Auto-fill the time log form
-		this.logTimeData = {
-			...this.logTimeData,
-			TLG_Time_Spent__c: timeSpent,
-			TLG_Description__c:
-				this.logTimeData.TLG_Description__c || `Work on ${taskName || "task"}`,
-			TLG_Date_Record__c: this.logTimeData.TLG_Date_Record__c || getTodayISO(),
-		};
-
-		// Show the time log section if it's hidden
-		this.showTimeLogSection = true;
-
-		// Show success toast
-		showToast(
-			this,
-			"Success",
-			`Time set to ${timeSpent} hours (${formattedTime})`,
-			"success"
-		);
+	get allTasksForTimeLog() {
+		const tasks = [];
+		this.columns.forEach((col) => {
+			if (col.tasks && Array.isArray(col.tasks)) {
+				col.tasks.forEach((task) => {
+					tasks.push({
+						label: task.Name || task.name || "Unnamed Task",
+						value: task.Id || task.id,
+					});
+				});
+			}
+		});
+		return tasks;
 	}
 
 	validateLogForm() {
@@ -1225,65 +682,50 @@ export default class KanbanBoard extends LightningElement {
 		if (!this.selectedTaskId) return;
 		if (!this.validateLogForm()) return;
 
-		// Prevent duplicate submissions
-		if (this.isSubmittingLogTime) return;
+		// Requery aggregates to avoid race conditions
+		await this.refreshTimeAggregates();
 
-		try {
-			this.isSubmittingLogTime = true;
-
-			// Requery aggregates to avoid race conditions
-			await this.refreshTimeAggregates();
-
-			const currentPct = parseInt(this.logTimeData.Completion__c, 10) || 0;
-			const totalPct = (this.timeAggregates.totalCompletion || 0) + currentPct;
-			if (totalPct > MAX_COMPLETION_PERCENT) {
-				this.logErrors = {
-					...this.logErrors,
-					Completion__c: `Total completion cannot exceed ${MAX_COMPLETION_PERCENT}%`,
-				};
-				return;
-			}
-
-			const addMinutes = displayToMinutes(this.logTimeData.TLG_Time_Spent__c);
-			const rec = this.selectedTaskRecord;
-			const estHours = rec
-				? rec.Total_Estimated_Time__c ?? rec.estimatedHours ?? 0
-				: 0;
-			const estMinutes = Number.isFinite(estHours)
-				? Math.trunc(estHours) * 60
-				: 0;
-			const newRemaining =
-				estMinutes - ((this.timeAggregates.totalMinutes || 0) + addMinutes);
-
-			if (newRemaining < 0) {
-				// Open Task Delay modal
-				await this.prepareDelayPicklists();
-				this.delayForm = {
-					Subject: "",
-					AssignedToName:
-						this.getUserNameById(
-							rec?.TLG_Assigned_To__c || rec?.assignedToId
-						) || "Current User",
-					Delay_Origin__c: "",
-					Category__c: "",
-					Status: "On Hold",
-					Delay_Days__c: 0,
-					Description: "",
-				};
-				this.showDelayModal = true;
-				return;
-			}
-
-			// Normal create
-			await this.persistLoggedTime();
-		} catch (error) {
-			logError("Error submitting time log:", error);
-			const msg =
-				error?.body?.message || error?.message || "Failed to submit time log";
-			showToast(this, "Error", msg, "error");
-		} finally {
-			this.isSubmittingLogTime = false;
+		const currentPct = parseInt(this.logTimeData.Completion__c, 10) || 0;
+		const totalPct = (this.timeAggregates.totalCompletion || 0) + currentPct;
+		if (totalPct > 100) {
+			this.logErrors = {
+				...this.logErrors,
+				Completion__c: "Total completion cannot exceed 100%",
+			};
+			return;
 		}
+
+		const addMinutes = displayToMinutes(this.logTimeData.TLG_Time_Spent__c);
+		const rec = this.selectedTaskRecord;
+		const estHours = rec
+			? rec.Total_Estimated_Time__c ?? rec.estimatedHours ?? 0
+			: 0;
+		const estMinutes = Number.isFinite(estHours)
+			? Math.trunc(estHours) * 60
+			: 0;
+		const newRemaining =
+			estMinutes - ((this.timeAggregates.totalMinutes || 0) + addMinutes);
+
+		if (newRemaining < 0) {
+			// Open Task Delay modal
+			await this.prepareDelayPicklists();
+			this.delayForm = {
+				Subject: "",
+				AssignedToName:
+					this.getUserNameById(rec?.TLG_Assigned_To__c || rec?.assignedToId) ||
+					"Current User",
+				Delay_Origin__c: "",
+				Category__c: "",
+				Status: "On Hold",
+				Delay_Days__c: 0,
+				Description: "",
+			};
+			this.showDelayModal = true;
+			return;
+		}
+
+		// Normal create
+		await this.persistLoggedTime();
 	}
 
 	async persistLoggedTime(delayPayload = null) {
@@ -1302,7 +744,7 @@ export default class KanbanBoard extends LightningElement {
 			// Reset form
 			this.logTimeData = {
 				Completion__c: "",
-				TLG_Date_Record__c: getTodayISO(),
+				TLG_Date_Record__c: new Date().toISOString().split("T")[0],
 				TLG_Description__c: "",
 				TLG_Time_Spent__c: "0.00",
 			};
@@ -1421,28 +863,6 @@ export default class KanbanBoard extends LightningElement {
 	}
 
 	connectedCallback() {
-		// Initialize debounced search functions
-		this._debouncedCaseSearchNew = debounce(
-			this.performCaseSearchNew.bind(this),
-			SEARCH_DEBOUNCE_MS
-		);
-		this._debouncedCaseSearchEdit = debounce(
-			this.performCaseSearchEdit.bind(this),
-			SEARCH_DEBOUNCE_MS
-		);
-		this._debouncedParentSearchNew = debounce(
-			this.performParentSearchNew.bind(this),
-			SEARCH_DEBOUNCE_MS
-		);
-		this._debouncedParentSearchEdit = debounce(
-			this.performParentSearchEdit.bind(this),
-			SEARCH_DEBOUNCE_MS
-		);
-		this._debouncedMentionSearch = debounce(
-			this.performMentionSearch.bind(this),
-			SEARCH_DEBOUNCE_MS
-		);
-
 		// Keep drawer offset synced with layout
 		if (!this._boundUpdateBoardOffset) {
 			this._boundUpdateBoardOffset = this.updateBoardOffset.bind(this);
@@ -1450,10 +870,7 @@ export default class KanbanBoard extends LightningElement {
 		window.addEventListener("resize", this._boundUpdateBoardOffset);
 		// Load initial board data
 		if (!this.disableAutoInit) {
-			this.loadInitialData().catch((error) => {
-				logError("Unhandled error in loadInitialData:", error);
-				// Error is already handled in loadInitialData() but this prevents unhandled promise rejection
-			});
+			this.loadInitialData();
 		}
 
 		// Add click outside listener for settings menu
@@ -1462,12 +879,9 @@ export default class KanbanBoard extends LightningElement {
 		}
 		document.addEventListener("click", this._boundHandleDocumentClick);
 
-		// MAJ-005: Initialize offline manager
-		this._setupOfflineManager();
-
 		// Initialize theme from localStorage or system preference
 		try {
-			const stored = getStorageItem("kanbanTheme");
+			const stored = window.localStorage.getItem("kanbanTheme");
 			if (stored === "dark") {
 				this.isDarkMode = true;
 			} else if (stored === "light") {
@@ -1479,463 +893,27 @@ export default class KanbanBoard extends LightningElement {
 					window.matchMedia("(prefers-color-scheme: dark)").matches;
 				this.isDarkMode = !!prefersDark;
 			}
-			const compact = getStorageItem("kanbanCompactView");
+			const compact = window.localStorage.getItem("kanbanCompactView");
 			this.isCompactView = compact === "true";
-
-			// Load virtual scrolling preference (default true)
-			const vsPref = getStorageItem("kanbanVirtualScroll");
-			if (vsPref === "true") {
-				this.enableVirtualScroll = true;
-			} else if (vsPref === "false") {
-				this.enableVirtualScroll = false;
-			} // else leave default
+			const sidebarCollapsed = window.localStorage.getItem(
+				"kanbanSidebarCollapsed"
+			);
+			this.isSidebarCollapsed = sidebarCollapsed === "true";
 		} catch (e) {
-			// Fallback to system defaults if preferences can't be loaded
-			logWarn("Could not load user preferences from storage:", e);
-		} // UX-002: Keyboard shortcuts for undo/redo
-		if (!this._boundHandleKeyDown) {
-			this._boundHandleKeyDown = this.handleKeyDown.bind(this);
+			// ignore storage or media errors
 		}
-		window.addEventListener("keydown", this._boundHandleKeyDown);
-
-		// UX-011: Dashboard chart filter events
-		if (!this._boundHandleChartFilter) {
-			this._boundHandleChartFilter = this.handleChartFilter.bind(this);
-		}
-		this.template.addEventListener("chartfilter", this._boundHandleChartFilter);
-
-		// PERF-001: Virtual scroll listeners
-		if (!this._boundHandleWindowScroll) {
-			this._boundHandleWindowScroll = this.handleWindowScroll.bind(this);
-		}
-		if (!this._boundHandleWindowResize) {
-			this._boundHandleWindowResize = this.handleWindowResize.bind(this);
-		}
-		window.addEventListener("scroll", this._boundHandleWindowScroll, {
-			passive: true,
-		});
-		window.addEventListener("resize", this._boundHandleWindowResize);
 	}
 
 	disconnectedCallback() {
-		// Clean up event listeners
 		if (this._boundUpdateBoardOffset) {
 			window.removeEventListener("resize", this._boundUpdateBoardOffset);
-			this._boundUpdateBoardOffset = null;
 		}
+		// Clean up click outside listener
 		if (this._boundHandleDocumentClick) {
 			document.removeEventListener("click", this._boundHandleDocumentClick);
-			this._boundHandleDocumentClick = null;
 		}
 
-		// Remove keyboard listener
-		if (this._boundHandleKeyDown) {
-			window.removeEventListener("keydown", this._boundHandleKeyDown);
-			this._boundHandleKeyDown = null;
-		}
-
-		// UX-011: Remove chart filter listener
-		if (this._boundHandleChartFilter) {
-			this.template.removeEventListener(
-				"chartfilter",
-				this._boundHandleChartFilter
-			);
-			this._boundHandleChartFilter = null;
-		}
-
-		// PERF-001: Remove virtual scroll listeners
-		if (this._boundHandleWindowScroll) {
-			window.removeEventListener("scroll", this._boundHandleWindowScroll);
-			this._boundHandleWindowScroll = null;
-		}
-		if (this._boundHandleWindowResize) {
-			window.removeEventListener("resize", this._boundHandleWindowResize);
-			this._boundHandleWindowResize = null;
-		}
-
-		// Cancel pending debounced calls to prevent memory leaks
-		if (this._debouncedCaseSearchNew?.cancel) {
-			this._debouncedCaseSearchNew.cancel();
-		}
-		if (this._debouncedCaseSearchEdit?.cancel) {
-			this._debouncedCaseSearchEdit.cancel();
-		}
-		if (this._debouncedParentSearchNew?.cancel) {
-			this._debouncedParentSearchNew.cancel();
-		}
-		if (this._debouncedParentSearchEdit?.cancel) {
-			this._debouncedParentSearchEdit.cancel();
-		}
-		if (this._debouncedMentionSearch?.cancel) {
-			this._debouncedMentionSearch.cancel();
-		}
-
-		// Clear debounced function references
-		this._debouncedCaseSearchNew = null;
-		this._debouncedCaseSearchEdit = null;
-		this._debouncedParentSearchNew = null;
-		this._debouncedParentSearchEdit = null;
-		this._debouncedMentionSearch = null;
-
-		// Clear large data arrays to free memory
-		this._originalTasks = null;
-		this._allTasks = [];
-		this._rawTasksData = [];
-		this._columns = [];
-		this._projects = [];
-		this.users = [];
-		this.comments = [];
-
-		// Clear filter and search results
-		this.caseResultsNew = [];
-		this.caseResultsEdit = [];
-		this.parentTaskResultsNew = [];
-		this.parentTaskResultsEdit = [];
-		this.mentionResults = [];
-		this.teamOptions = [];
-		this.assignableUsersOptions = [];
-		this.projectOptions = [];
-
-		// Clear column collapse tracking
-		this.collapsedColumns.clear();
-		this.manuallyCollapsedColumns.clear();
-		this.manuallyExpandedColumns.clear();
-
-		// Clear bulk selection
-		this.selectedTaskIds.clear();
-		this._lastClickedTaskId = null;
-
-		// Stop comment polling and clear interval
-		this.stopCommentPolling();
-
-		// MAJ-005: Cleanup offline manager
-		if (this._offlineUnsubscribe) {
-			this._offlineUnsubscribe();
-			this._offlineUnsubscribe = null;
-		}
-	}
-
-	// =====================
-	// MAJ-005: OFFLINE MANAGER METHODS
-	// =====================
-
-	/**
-	 * Setup offline manager and listeners
-	 */
-	_setupOfflineManager() {
-		// Set initial online/offline state
-		this.isOfflineMode = isOffline();
-		this.offlineQueueLength = getQueueLength();
-
-		// Subscribe to network status changes
-		this._offlineUnsubscribe = offlineManager.addListener((status, details) => {
-			this.isOfflineMode = !details.isOnline;
-			this.offlineQueueLength = details.queueLength;
-
-			// Show appropriate toast
-			if (status === 'online') {
-				showToast(
-					this,
-					'Back Online',
-					this.offlineQueueLength > 0
-						? `Connection restored. Syncing ${this.offlineQueueLength} pending operations...`
-						: 'Connection restored',
-					'success',
-					'dismissible'
-				);
-
-				// Try to load cached data if needed
-				this._loadCachedData();
-			} else if (status === 'offline') {
-				showToast(
-					this,
-					'Offline Mode',
-					'You are currently offline. Changes will be queued and synced when connection is restored.',
-					'warning',
-					'sticky'
-				);
-			} else if (status === 'sync_completed') {
-				const { success, failed, remaining } = details;
-				if (success > 0) {
-					showToast(
-						this,
-						'Sync Complete',
-						`Successfully synced ${success} operation${success > 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`,
-						failed > 0 ? 'warning' : 'success',
-						'dismissible'
-					);
-
-					// Refresh board after sync
-					if (success > 0) {
-						this.safeLoadInitialData();
-					}
-				}
-
-				this.offlineQueueLength = remaining;
-			}
-		});
-
-		// Load cached data if offline
-		if (this.isOfflineMode) {
-			this._loadCachedData();
-		}
-
-		logInfo('[KANBAN] Offline manager initialized');
-	}
-
-	/**
-	 * Load cached data when offline
-	 */
-	_loadCachedData() {
-		try {
-			// Try to load cached tasks
-			const cachedTasks = getCachedData('tasks');
-			if (cachedTasks && Array.isArray(cachedTasks)) {
-				logInfo('[KANBAN] Loading cached tasks:', cachedTasks.length);
-				this._rawTasksData = cachedTasks;
-				this.organizeTasksByStatus();
-			}
-
-			// Try to load cached projects
-			const cachedProjects = getCachedData('projects');
-			if (cachedProjects && Array.isArray(cachedProjects)) {
-				this._projects = cachedProjects;
-			}
-
-			// Try to load cached users
-			const cachedUsers = getCachedData('users');
-			if (cachedUsers && Array.isArray(cachedUsers)) {
-				this.users = cachedUsers;
-			}
-		} catch (error) {
-			logError('[KANBAN] Error loading cached data:', error);
-		}
-	}
-
-	/**
-	 * Cache data for offline access
-	 */
-	async _cacheCurrentData() {
-		try {
-			if (this._rawTasksData && this._rawTasksData.length > 0) {
-				await cacheData('tasks', this._rawTasksData);
-			}
-			if (this._projects && this._projects.length > 0) {
-				await cacheData('projects', this._projects);
-			}
-			if (this.users && this.users.length > 0) {
-				await cacheData('users', this.users);
-			}
-			logInfo('[KANBAN] Data cached for offline access');
-		} catch (error) {
-			logError('[KANBAN] Error caching data:', error);
-		}
-	}
-
-	/**
-	 * Handle offline operation execution
-	 */
-	async _executeOfflineOperation(operation) {
-		logInfo('[KANBAN] Executing queued operation:', operation.type);
-
-		try {
-			switch (operation.type) {
-				case OPERATION_TYPES.CREATE_TASK:
-					return await this._createTaskFromQueue(operation.data);
-				case OPERATION_TYPES.UPDATE_TASK:
-					return await this._updateTaskFromQueue(operation.data);
-				case OPERATION_TYPES.DELETE_TASK:
-					return await this._deleteTaskFromQueue(operation.data);
-				case OPERATION_TYPES.MOVE_TASK:
-					return await this._moveTaskFromQueue(operation.data);
-				case OPERATION_TYPES.CREATE_COMMENT:
-					return await this._createCommentFromQueue(operation.data);
-				case OPERATION_TYPES.LOG_TIME:
-					return await this._logTimeFromQueue(operation.data);
-				case OPERATION_TYPES.BULK_UPDATE:
-					return await this._bulkUpdateFromQueue(operation.data);
-				default:
-					throw new Error(`Unknown operation type: ${operation.type}`);
-			}
-		} catch (error) {
-			logError('[KANBAN] Failed to execute queued operation:', error);
-			throw error;
-		}
-	}
-
-	/**
-	 * Dismiss offline banner
-	 */
-	handleDismissOfflineBanner() {
-		this.showOfflineBanner = false;
-	}
-
-	/**
-	 * Manually trigger sync
-	 */
-	async handleSyncOfflineQueue() {
-		try {
-			showToast(this, 'Syncing', 'Syncing pending operations...', 'info');
-			const result = await offlineManager.syncQueue();
-			
-			if (result.success > 0) {
-				showToast(
-					this,
-					'Sync Complete',
-					`Successfully synced ${result.success} operation${result.success > 1 ? 's' : ''}`,
-					'success'
-				);
-				this.safeLoadInitialData();
-			} else if (result.failed > 0) {
-				showToast(
-					this,
-					'Sync Failed',
-					`${result.failed} operation${result.failed > 1 ? 's' : ''} failed to sync`,
-					'error'
-				);
-			}
-		} catch (error) {
-			logError('[KANBAN] Error syncing queue:', error);
-			showToast(this, 'Error', 'Failed to sync operations', 'error');
-		}
-	}
-
-	// =====================
-	// DEBOUNCED SEARCH IMPLEMENTATIONS
-	// =====================
-	async performCaseSearchNew(text) {
-		try {
-			this.isSearchingCaseNew = true;
-			this.caseResultsNew = [];
-			if (!text || text.trim().length < 2) {
-				this.showCaseResultsNew = false;
-				return;
-			}
-			const projectId = this.newTaskData?.TLG_Opportunity__c || null;
-			const results = await searchCases(text.trim(), projectId);
-			this.caseResultsNew = (results || [])
-				.slice(0, SEARCH_MAX_RESULTS)
-				.map((c) => ({
-					label: `${c.Subject}`,
-					value: c.Id,
-				}));
-			this.showCaseResultsNew = this.caseResultsNew.length > 0;
-		} catch (e) {
-			this.showCaseResultsNew = false;
-			this.caseResultsNew = [];
-		} finally {
-			this.isSearchingCaseNew = false;
-		}
-	}
-
-	async performCaseSearchEdit(text) {
-		try {
-			this.isSearchingCaseEdit = true;
-			this.caseResultsEdit = [];
-			if (!text || text.trim().length < 2) {
-				this.showCaseResultsEdit = false;
-				return;
-			}
-			const projectId = this.editTaskData?.TLG_Opportunity__c || null;
-			const results = await searchCases(text.trim(), projectId);
-			this.caseResultsEdit = (results || [])
-				.slice(0, SEARCH_MAX_RESULTS)
-				.map((c) => ({
-					label: `${c.Subject}`,
-					value: c.Id,
-				}));
-			this.showCaseResultsEdit = this.caseResultsEdit.length > 0;
-		} catch (e) {
-			this.showCaseResultsEdit = false;
-			this.caseResultsEdit = [];
-		} finally {
-			this.isSearchingCaseEdit = false;
-		}
-	}
-
-	async performParentSearchNew(text) {
-		try {
-			this.isSearchingParentNew = true;
-			this.parentTaskResultsNew = [];
-			if (!text || text.trim().length < 2) {
-				this.showParentResultsNew = false;
-				return;
-			}
-			const params = {
-				searchTerm: text.trim(),
-				limitCount: SEARCH_MAX_RESULTS,
-			};
-			const records = await getTasks(params);
-			this.parentTaskResultsNew = (records || []).map((t) => ({
-				label: t.Name,
-				value: t.Id,
-			}));
-			this.showParentResultsNew = this.parentTaskResultsNew.length > 0;
-		} catch (e) {
-			this.showParentResultsNew = false;
-			this.parentTaskResultsNew = [];
-		} finally {
-			this.isSearchingParentNew = false;
-		}
-	}
-
-	async performParentSearchEdit(text) {
-		try {
-			this.isSearchingParentEdit = true;
-			this.parentTaskResultsEdit = [];
-			if (!text || text.trim().length < 2) {
-				this.showParentResultsEdit = false;
-				return;
-			}
-			const params = {
-				searchTerm: text.trim(),
-				limitCount: SEARCH_MAX_RESULTS,
-			};
-			const records = await getTasks(params);
-			const currentId = this.selectedTaskId;
-			this.parentTaskResultsEdit = (records || [])
-				.filter((t) => t.Id !== currentId)
-				.map((t) => ({ label: t.Name, value: t.Id }));
-			this.showParentResultsEdit = this.parentTaskResultsEdit.length > 0;
-		} catch (e) {
-			this.showParentResultsEdit = false;
-			this.parentTaskResultsEdit = [];
-		} finally {
-			this.isSearchingParentEdit = false;
-		}
-	}
-
-	async performMentionSearch(text) {
-		try {
-			this.mentionResults = [];
-			if (!text || text.trim().length < 2) {
-				return;
-			}
-			this.isSearchingMentions = true;
-			const [internalUsers, portalUsers] = await Promise.all([
-				searchInternalUsersForTagging(text.trim()),
-				searchPortalUsersForTagging(text.trim(), null),
-			]);
-			const merged = [...(internalUsers || []), ...(portalUsers || [])];
-			// Unique by Id
-			const seen = new Set();
-			const results = [];
-			merged.forEach((u) => {
-				const id = u.Id || u.id;
-				if (!id || seen.has(id)) return;
-				seen.add(id);
-				results.push({
-					userId: id,
-					name: u.Name || u.name,
-					username: u.Username || u.username,
-				});
-			});
-			this.mentionResults = results.slice(0, 10);
-		} catch (e) {
-			// silent fail
-		} finally {
-			this.isSearchingMentions = false;
-		}
+		// No theme change listeners to clean up (handled by parent)
 	}
 
 	// Handle sidebar navigation clicks
@@ -1943,20 +921,14 @@ export default class KanbanBoard extends LightningElement {
 		const key = event.currentTarget?.dataset?.key;
 		if (!key) return;
 		this.selectedNav = key;
-
-		// Navigate to the selected view
-		if (key === "dashboard") {
-			// Dashboard view with timeline
-		} else if (key === "tasks") {
-			// Task management view (coming soon)
-			showToast(
-				this,
-				"Info",
-				"Task management section is coming soon.",
-				"info"
-			);
-		} else if (key === "kanban") {
-			// Kanban board view
+		// Close any open drawers when switching views
+		if (
+			this.showTaskDrawer ||
+			this.showNewTaskDrawer ||
+			this.showFilterDrawer ||
+			this.showTimeLogDrawer
+		) {
+			this.handleCloseDrawer();
 		}
 	}
 
@@ -1987,41 +959,6 @@ export default class KanbanBoard extends LightningElement {
 		}
 	}
 
-	// Accessibility: Save current focus and set focus to modal
-	saveFocusAndFocusModal(modalSelector) {
-		this._previousActiveElement = document.activeElement;
-		// Use setTimeout to allow DOM to render the modal first
-		setTimeout(() => {
-			const modal = this.template.querySelector(modalSelector);
-			if (modal) {
-				// Try to focus first interactive element in modal
-				const firstFocusable = modal.querySelector(
-					'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-				);
-				if (firstFocusable) {
-					firstFocusable.focus();
-				} else {
-					// If no focusable element, focus the modal itself
-					modal.setAttribute("tabindex", "-1");
-					modal.focus();
-				}
-			}
-		}, 100);
-	}
-
-	// Accessibility: Restore focus to element that opened the modal
-	restoreFocus() {
-		if (this._previousActiveElement && this._previousActiveElement.focus) {
-			try {
-				this._previousActiveElement.focus();
-			} catch (e) {
-				// Element may no longer exist in DOM
-				logError("Could not restore focus:", e);
-			}
-		}
-		this._previousActiveElement = null;
-	}
-
 	handleDocumentClick(event) {
 		// Close settings menu if clicked outside
 		if (this.showSettingsMenu) {
@@ -2041,12 +978,13 @@ export default class KanbanBoard extends LightningElement {
 	get dashboardStats() {
 		const tasks = this._originalTasks || this._allTasks || [];
 		const total = tasks.length;
-		const inProgress = tasks.filter((t) =>
-			statusEquals(t.status, "In Progress")
+		const inProgress = tasks.filter(
+			(t) => (t.status || "").toLowerCase() === "in progress"
 		).length;
 		const completed = tasks.filter(
 			(t) =>
-				statusEquals(t.status, "Completed") || statusEquals(t.status, "Done")
+				(t.status || "").toLowerCase() === "completed" ||
+				(t.status || "").toLowerCase() === "done"
 		).length;
 
 		// My tasks: compare against selectedAssignedToId if set, else current user from server (loaded earlier)
@@ -2094,6 +1032,9 @@ export default class KanbanBoard extends LightningElement {
 		}
 		// Sort segments by count desc for better legend readability
 		segments.sort((a, b) => b.count - a.count);
+		// Load comments and files from server
+		this.loadComments(task.Id);
+		this.loadTaskFiles(task.Id);
 		return segments;
 	}
 
@@ -2118,47 +1059,9 @@ export default class KanbanBoard extends LightningElement {
 	}
 
 	async loadInitialData() {
-		try {
-			await this.loadUserPreferences();
-			await this.loadDynamicColors();
-			await this.loadBoardData();
-		} catch (error) {
-			this.isLoading = false;
-			this.error = error;
-
-			// Log error details for debugging
-			logError("Error loading initial data:", error);
-			if (error?.body) {
-				logError("Error body:", JSON.stringify(error.body, null, 2));
-			}
-
-			// Extract message
-			let message = "Unknown error occurred";
-			try {
-				if (error?.body?.message) {
-					message = error.body.message;
-				} else if (error?.message) {
-					message = error.message;
-				} else if (typeof error === "string") {
-					message = error;
-				}
-			} catch (e) {
-				logError("Error extracting message:", e);
-			}
-
-			showToast(this, "Error", `Failed to load board: ${message}`, "error");
-		}
-	}
-
-	/**
-	 * Safe wrapper for loadInitialData() to prevent unhandled promise rejections
-	 * Use this in event handlers where async/await is not appropriate
-	 */
-	safeLoadInitialData() {
-		this.loadInitialData().catch((error) => {
-			logError("Error in safeLoadInitialData:", error);
-			// Error already handled in loadInitialData()
-		});
+		await this.loadUserPreferences();
+		await this.loadDynamicColors();
+		await this.loadBoardData();
 	}
 
 	async loadUserPreferences() {
@@ -2172,7 +1075,7 @@ export default class KanbanBoard extends LightningElement {
 				this.collapsedColumns = new Set(collapsedArray);
 			}
 		} catch (error) {
-			logError("Error loading user preferences:", error);
+			console.error("Error loading user preferences:", error);
 			// Continue with empty collapsed set if error
 			this.collapsedColumns = new Set();
 		}
@@ -2189,7 +1092,7 @@ export default class KanbanBoard extends LightningElement {
 				this.applyDynamicColors(colorConfigs);
 			}
 		} catch (error) {
-			logError("Error loading dynamic colors:", error);
+			console.error("Error loading dynamic colors:", error);
 			// Continue with default CSS colors if error
 		}
 	}
@@ -2209,9 +1112,14 @@ export default class KanbanBoard extends LightningElement {
 
 		colorConfigs.forEach((config) => {
 			const statusName = config.statusName;
-			const colorCode = config.colorCode;
-			const gradientStart = config.collapsedColorStart;
-			const gradientEnd = config.collapsedColorEnd;
+			// Provide safe defaults for missing color values
+			const colorCode = config.colorCode || "#3b82f6";
+			const gradientStart = config.collapsedColorStart || "#1e293b";
+			const gradientEnd = config.collapsedColorEnd || "#0f172a";
+			const cardGradientLightTop = config.cardGradientLightTop;
+			const cardGradientLightBottom = config.cardGradientLightBottom;
+			const cardGradientDarkTop = config.cardGradientDarkTop;
+			const cardGradientDarkBottom = config.cardGradientDarkBottom;
 
 			// Add CSS rule for column header
 			cssRules += `
@@ -2227,13 +1135,64 @@ export default class KanbanBoard extends LightningElement {
                 }
             `;
 
-			// Add CSS rule for collapsed column
+			// Add CSS rule for collapsed column with enhanced glossy styling
 			cssRules += `
                 .kanban-column.collapsed[data-status="${statusName}"] {
-                    background: linear-gradient(180deg, ${gradientStart}, ${gradientEnd});
+                    background: linear-gradient(180deg, ${gradientStart}, ${gradientEnd}) !important;
                     color: white;
+                    border-color: ${this.adjustColor(
+											gradientStart,
+											20
+										)} !important;
+                    
+                    /* Enhanced glossy effect */
+                    box-shadow:
+                        inset 0 2px 0 rgba(255, 255, 255, 0.1),
+                        inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+                        inset 2px 0 0 rgba(255, 255, 255, 0.05),
+                        0 4px 8px rgba(0, 0, 0, 0.3),
+                        0 8px 16px rgba(0, 0, 0, 0.15) !important;
+                }
+                
+                .kanban-column.collapsed[data-status="${statusName}"]:hover {
+                    background: linear-gradient(180deg, ${this.adjustColor(
+											gradientStart,
+											15
+										)}, ${this.adjustColor(gradientEnd, 10)}) !important;
+                    border-color: ${this.adjustColor(
+											gradientStart,
+											30
+										)} !important;
+                    
+                    /* Enhanced hover glossy effect */
+                    box-shadow:
+                        inset 0 2px 0 rgba(255, 255, 255, 0.15),
+                        inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+                        3px 0 12px rgba(0, 0, 0, 0.4),
+                        3px 0 24px rgba(0, 0, 0, 0.2),
+                        0 0 20px ${this.addAlpha(
+													gradientStart,
+													0.2
+												)} !important;
                 }
             `;
+
+			// Add CSS rules for card gradients if configured
+			if (cardGradientLightTop && cardGradientLightBottom) {
+				cssRules += `
+                    .light-theme .kanban-column[data-status="${statusName}"] .kanban-card {
+                        background: linear-gradient(180deg, ${cardGradientLightTop}, ${cardGradientLightBottom}) !important;
+                    }
+                `;
+			}
+
+			if (cardGradientDarkTop && cardGradientDarkBottom) {
+				cssRules += `
+                    .dark-theme .kanban-column[data-status="${statusName}"] .kanban-card {
+                        background: linear-gradient(180deg, ${cardGradientDarkTop}, ${cardGradientDarkBottom}) !important;
+                    }
+                `;
+			}
 		});
 
 		styleElement.textContent = cssRules;
@@ -2259,27 +1218,25 @@ export default class KanbanBoard extends LightningElement {
 	// Helper function to adjust color brightness
 	adjustColor(color, percent) {
 		// Convert hex to RGB
-		const num = parseInt(color.replace("#", ""), HEX_COLOR_BASE);
-		const r = Math.max(
-			0,
-			Math.min(COLOR_MAX_VALUE, ((num >> COLOR_BIT_SHIFT_RED) & 0xff) + percent)
-		);
-		const g = Math.max(
-			0,
-			Math.min(
-				COLOR_MAX_VALUE,
-				((num >> COLOR_BIT_SHIFT_GREEN) & 0xff) + percent
-			)
-		);
-		const b = Math.max(0, Math.min(COLOR_MAX_VALUE, (num & 0xff) + percent));
+		const num = parseInt(color.replace("#", ""), 16);
+		const r = Math.max(0, Math.min(255, ((num >> 16) & 0xff) + percent));
+		const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + percent));
+		const b = Math.max(0, Math.min(255, (num & 0xff) + percent));
 
 		// Convert back to hex
-		return (
-			"#" +
-			((r << COLOR_BIT_SHIFT_RED) | (g << COLOR_BIT_SHIFT_GREEN) | b)
-				.toString(HEX_COLOR_BASE)
-				.padStart(HEX_COLOR_PAD_LENGTH, "0")
-		);
+		return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+	}
+
+	// Helper function to add alpha transparency to hex color
+	addAlpha(hexColor, alpha) {
+		// Convert hex to RGB
+		const num = parseInt(hexColor.replace("#", ""), 16);
+		const r = (num >> 16) & 0xff;
+		const g = (num >> 8) & 0xff;
+		const b = num & 0xff;
+
+		// Return rgba format
+		return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 	}
 
 	extractMaxExpandedColumns(colorConfigs) {
@@ -2407,9 +1364,6 @@ export default class KanbanBoard extends LightningElement {
 
 			// Build team options from task dataset (unique team IDs)
 			this.updateTeamOptions();
-
-			// MAJ-005: Cache data for offline access
-			await this._cacheCurrentData();
 		} finally {
 			this.isLoading = false;
 		}
@@ -2418,14 +1372,14 @@ export default class KanbanBoard extends LightningElement {
 	handleLoadFailure(step, error) {
 		const message = error?.body?.message || error?.message || "Unknown error";
 		this.error = error;
-		logError(`Kanban board failed while loading ${step}:`, error);
+		console.error(`Kanban board failed while loading ${step}:`, error);
 		showToast(this, "Error", `Failed to load ${step}: ${message}`, "error");
 
 		try {
 			const defaultColumns = this.createDefaultStatusColumns();
 			this.processAndSetData(defaultColumns, []);
 		} catch (fallbackError) {
-			logError("Fallback column rendering failed:", fallbackError);
+			console.error("Fallback column rendering failed:", fallbackError);
 		}
 	}
 
@@ -2438,7 +1392,7 @@ export default class KanbanBoard extends LightningElement {
 			}
 		} catch (error) {
 			// Do not block board load when context call fails; fall back to legacy method
-			logWarn("Unable to load current user context via Apex:", error);
+			console.warn("Unable to load current user context via Apex:", error);
 		}
 
 		let userId = context.userId || context.UserId || context.id || "";
@@ -2453,7 +1407,7 @@ export default class KanbanBoard extends LightningElement {
 				const fallbackId = await getCurrentUserId();
 				userId = fallbackId || "";
 			} catch (error) {
-				logError("Error getting current user ID fallback:", error);
+				console.error("Error getting current user ID fallback:", error);
 				userId = "";
 			}
 		}
@@ -2629,10 +1583,7 @@ export default class KanbanBoard extends LightningElement {
 			columnTitleId: `column-title-${index}`,
 			columnAriaLabel: `${displayTitle} column with 0 tasks`,
 			tooltipTitle: `${displayTitle} • 0`,
-			combinedClasses: `kanban-column ${isCollapsed ? "collapsed" : ""}`.trim(),
-			toggleTitle: isCollapsed
-				? `Expand ${displayTitle}`
-				: `Collapse ${displayTitle}`,
+			isSorted: this.sortedColumnId === columnId,
 		};
 	}
 
@@ -2665,7 +1616,7 @@ export default class KanbanBoard extends LightningElement {
 
 		const columnsMap = new Map();
 		columnsData.forEach((col) => {
-			const mapKey = normalizeStatusKey(col.statusValue);
+			const mapKey = normalizeStatusValue(col.statusValue).toLowerCase();
 			columnsMap.set(mapKey, { ...col, cards: [] });
 		});
 
@@ -2686,7 +1637,7 @@ export default class KanbanBoard extends LightningElement {
 		const dynamicStatusSet = new Set();
 		cards.forEach((card) => {
 			const statusKey = normalizeStatusValue(card.status);
-			const mapKey = normalizeStatusKey(card.status);
+			const mapKey = statusKey.toLowerCase();
 			if (!columnsMap.has(mapKey) && !dynamicStatusSet.has(mapKey)) {
 				dynamicStatusSet.add(mapKey);
 				dynamicStatuses.push(statusKey);
@@ -2699,12 +1650,12 @@ export default class KanbanBoard extends LightningElement {
 				nextIndexStart + offset,
 				"dynamic"
 			);
-			const mapKey = normalizeStatusKey(column.statusValue);
+			const mapKey = column.statusValue.toLowerCase();
 			columnsMap.set(mapKey, column);
 		});
 
 		cards.forEach((card) => {
-			const statusKey = normalizeStatusKey(card.status);
+			const statusKey = normalizeStatusValue(card.status).toLowerCase();
 			const targetColumn = columnsMap.get(statusKey);
 			if (targetColumn) {
 				targetColumn.cards.push(card);
@@ -2767,14 +1718,14 @@ export default class KanbanBoard extends LightningElement {
 		// Get current column map for efficient lookup
 		const columnsMap = new Map();
 		this._columns.forEach((col) => {
-			const mapKey = normalizeStatusKey(col.statusValue);
+			const mapKey = normalizeStatusValue(col.statusValue).toLowerCase();
 			columnsMap.set(mapKey, col);
 		});
 
 		// Distribute current tasks into columns
 		const dynamicColumns = [];
 		this._allTasks.forEach((card) => {
-			const statusKey = normalizeStatusKey(card.status);
+			const statusKey = normalizeStatusValue(card.status).toLowerCase();
 			let targetColumn = columnsMap.get(statusKey);
 
 			// If column doesn't exist for this status, create it dynamically
@@ -2785,7 +1736,9 @@ export default class KanbanBoard extends LightningElement {
 					nextIndex,
 					"dynamic"
 				);
-				const mapKey = normalizeStatusKey(targetColumn.statusValue);
+				const mapKey = normalizeStatusValue(
+					targetColumn.statusValue
+				).toLowerCase();
 				columnsMap.set(mapKey, targetColumn);
 				dynamicColumns.push(targetColumn);
 			}
@@ -2814,17 +1767,9 @@ export default class KanbanBoard extends LightningElement {
 			const plural = column.cardCount === 1 ? "task" : "tasks";
 			column.columnAriaLabel = `${column.title} column with ${column.cardCount} ${plural}`;
 			column.tooltipTitle = `${column.title} • ${column.cardCount}`;
-			// Update display classes and toggle title based on current state
-			column.combinedClasses = `kanban-column ${
-				column.isCollapsed ? "collapsed" : ""
-			}`.trim();
-			column.toggleTitle = column.isCollapsed
-				? `Expand ${column.title}`
-				: `Collapse ${column.title}`;
-			// Accessibility: aria-expanded
-			column.isExpanded = !column.isCollapsed;
 		}
 	}
+
 	mapSalesforceTaskToCard(task) {
 		const statusValue = normalizeStatusValue(
 			task.TLG_Status__c || "Not Started"
@@ -2836,11 +1781,12 @@ export default class KanbanBoard extends LightningElement {
 			title: task.Name,
 			description: task.TLG_Shared_Notes__c || "",
 			dueDate: task.TLG_Due_Date__c
-				? formatDateISO(task.TLG_Due_Date__c)
+				? new Date(task.TLG_Due_Date__c).toISOString().split("T")[0]
 				: null,
 			priority: task.TLG_Priority__c || "Medium",
 			status: statusValue,
 			sortOrder: task.TLG_Kanban_Sort_Order__c,
+			isSelected: this.selectedTaskIds.has(task.Id),
 			// Additional fields for edit mapping
 			estimatedHours: task.Total_Estimated_Time__c,
 			progress: task.Progress__c,
@@ -2898,7 +1844,11 @@ export default class KanbanBoard extends LightningElement {
 		const projectId = rec.TLG_Opportunity__c || rec.projectId || null;
 		const assignedToId = rec.TLG_Assigned_To__c || rec.assignedToId || null;
 		const due = rec.TLG_Due_Date__c || rec.dueDate || null;
-		const dueDate = due ? formatDateISO(due) : null;
+		const dueDate = due
+			? typeof due === "string" && due.includes("T")
+				? new Date(due).toISOString().split("T")[0]
+				: new Date(due).toISOString().split("T")[0]
+			: null;
 
 		return {
 			id: rec.Id,
@@ -3058,13 +2008,27 @@ export default class KanbanBoard extends LightningElement {
 	// =====================
 	// LOOKUPS: CASE (TARGET) - NEW
 	// =====================
-	handleCaseSearchInputNew(event) {
-		const text = event.target.value || "";
-		this.newCaseSearchText = text;
-		this.showCaseResultsNew = true;
-		// Call debounced search function
-		if (this._debouncedCaseSearchNew) {
-			this._debouncedCaseSearchNew(text);
+	async handleCaseSearchInputNew(event) {
+		try {
+			const text = event.target.value || "";
+			this.newCaseSearchText = text;
+			this.showCaseResultsNew = true;
+			this.isSearchingCaseNew = true;
+			this.caseResultsNew = [];
+			if (!text || text.trim().length < 2) return;
+			const projectId = this.newTaskData?.TLG_Opportunity__c || null;
+			const results = await searchCases(text.trim(), projectId);
+			this.caseResultsNew = (results || []).slice(0, 20).map((c) => ({
+				label: `${c.Subject}`,
+				value: c.Id,
+			}));
+			this.showCaseResultsNew = this.caseResultsNew.length > 0;
+		} catch (e) {
+			// Silent fail; keep UI responsive
+			this.showCaseResultsNew = false;
+			this.caseResultsNew = [];
+		} finally {
+			this.isSearchingCaseNew = false;
 		}
 	}
 
@@ -3087,13 +2051,26 @@ export default class KanbanBoard extends LightningElement {
 	// =====================
 	// LOOKUPS: CASE (TARGET) - EDIT
 	// =====================
-	handleCaseSearchInputEdit(event) {
-		const text = event.target.value || "";
-		this.editCaseSearchText = text;
-		this.showCaseResultsEdit = true;
-		// Call debounced search function
-		if (this._debouncedCaseSearchEdit) {
-			this._debouncedCaseSearchEdit(text);
+	async handleCaseSearchInputEdit(event) {
+		try {
+			const text = event.target.value || "";
+			this.editCaseSearchText = text;
+			this.showCaseResultsEdit = true;
+			this.isSearchingCaseEdit = true;
+			this.caseResultsEdit = [];
+			if (!text || text.trim().length < 2) return;
+			const projectId = this.editTaskData?.TLG_Opportunity__c || null;
+			const results = await searchCases(text.trim(), projectId);
+			this.caseResultsEdit = (results || []).slice(0, 20).map((c) => ({
+				label: `${c.Subject}`,
+				value: c.Id,
+			}));
+			this.showCaseResultsEdit = this.caseResultsEdit.length > 0;
+		} catch (e) {
+			this.showCaseResultsEdit = false;
+			this.caseResultsEdit = [];
+		} finally {
+			this.isSearchingCaseEdit = false;
 		}
 	}
 
@@ -3116,13 +2093,26 @@ export default class KanbanBoard extends LightningElement {
 	// =====================
 	// LOOKUPS: PARENT TASK - NEW
 	// =====================
-	handleParentSearchInputNew(event) {
-		const text = event.target.value || "";
-		this.newParentSearchText = text;
-		this.showParentResultsNew = true;
-		// Call debounced search function
-		if (this._debouncedParentSearchNew) {
-			this._debouncedParentSearchNew(text);
+	async handleParentSearchInputNew(event) {
+		try {
+			const text = event.target.value || "";
+			this.newParentSearchText = text;
+			this.showParentResultsNew = true;
+			this.isSearchingParentNew = true;
+			this.parentTaskResultsNew = [];
+			if (!text || text.trim().length < 2) return;
+			const params = { searchTerm: text.trim(), limitCount: 20 };
+			const records = await getTasks(params);
+			this.parentTaskResultsNew = (records || []).map((t) => ({
+				label: t.Name,
+				value: t.Id,
+			}));
+			this.showParentResultsNew = this.parentTaskResultsNew.length > 0;
+		} catch (e) {
+			this.showParentResultsNew = false;
+			this.parentTaskResultsNew = [];
+		} finally {
+			this.isSearchingParentNew = false;
 		}
 	}
 
@@ -3145,13 +2135,26 @@ export default class KanbanBoard extends LightningElement {
 	// =====================
 	// LOOKUPS: PARENT TASK - EDIT
 	// =====================
-	handleParentSearchInputEdit(event) {
-		const text = event.target.value || "";
-		this.editParentSearchText = text;
-		this.showParentResultsEdit = true;
-		// Call debounced search function
-		if (this._debouncedParentSearchEdit) {
-			this._debouncedParentSearchEdit(text);
+	async handleParentSearchInputEdit(event) {
+		try {
+			const text = event.target.value || "";
+			this.editParentSearchText = text;
+			this.showParentResultsEdit = true;
+			this.isSearchingParentEdit = true;
+			this.parentTaskResultsEdit = [];
+			if (!text || text.trim().length < 2) return;
+			const params = { searchTerm: text.trim(), limitCount: 20 };
+			const records = await getTasks(params);
+			const currentId = this.selectedTaskId;
+			this.parentTaskResultsEdit = (records || [])
+				.filter((t) => t.Id !== currentId)
+				.map((t) => ({ label: t.Name, value: t.Id }));
+			this.showParentResultsEdit = this.parentTaskResultsEdit.length > 0;
+		} catch (e) {
+			this.showParentResultsEdit = false;
+			this.parentTaskResultsEdit = [];
+		} finally {
+			this.isSearchingParentEdit = false;
 		}
 	}
 
@@ -3356,50 +2359,13 @@ export default class KanbanBoard extends LightningElement {
 	// Keeping this section for any additional card-click related logic
 
 	handleCloseTaskDrawer() {
-		// Check for unsaved changes before closing (MIN-005)
-		if (this.isEditingTask && this._hasUnsavedChanges) {
-			this.showConfirmation = true;
-			this.confirmationConfig = {
-				title: "Unsaved Changes",
-				message:
-					"You have unsaved changes. Are you sure you want to close without saving?",
-				confirmLabel: "Discard Changes",
-				cancelLabel: "Keep Editing",
-				onConfirm: () => {
-					this._forceCloseDrawer();
-					this.showConfirmation = false;
-				},
-				onCancel: () => {
-					this.showConfirmation = false;
-				},
-			};
-			return;
-		}
-
-		this._forceCloseDrawer();
-	}
-
-	_forceCloseDrawer() {
 		this.showTaskDrawer = false;
 		this.selectedTaskId = null;
 		this.isEditingTask = false;
 		this.editTaskData = {};
 		this.comments = [];
 		this.newCommentText = "";
-		this._hasUnsavedChanges = false;
-	}
-
-	// Confirmation Dialog handlers (MIN-005)
-	handleConfirmationConfirm() {
-		if (typeof this.confirmationConfig.onConfirm === "function") {
-			this.confirmationConfig.onConfirm();
-		}
-	}
-
-	handleConfirmationCancel() {
-		if (typeof this.confirmationConfig.onCancel === "function") {
-			this.confirmationConfig.onCancel();
-		}
+		this.taskFiles = [];
 	}
 
 	// =====================
@@ -3410,7 +2376,11 @@ export default class KanbanBoard extends LightningElement {
 		if (!rec) return;
 		// Prefill editable data from raw record if available
 		const due = rec.TLG_Due_Date__c || rec.dueDate || null;
-		const dueDate = due ? formatDateForInput(due) : "";
+		const dueDate = due
+			? typeof due === "string" && due.includes("T")
+				? new Date(due).toISOString().split("T")[0]
+				: new Date(due).toISOString().split("T")[0]
+			: "";
 
 		this.editTaskData = {
 			Name: rec.Name || rec.title || "",
@@ -3517,7 +2487,6 @@ export default class KanbanBoard extends LightningElement {
 			if (Number.isNaN(coerced)) coerced = "";
 		}
 		this.editTaskData = { ...this.editTaskData, [name]: coerced };
-		this._hasUnsavedChanges = true; // Mark as dirty when any field changes (MIN-005)
 		if (name === "TLG_Team__c") {
 			const teamId = coerced;
 			let options = [];
@@ -3605,7 +2574,6 @@ export default class KanbanBoard extends LightningElement {
 			await updateTaskFromMap(this.selectedTaskId, payload);
 			showToast(this, "Success", "Task updated", "success");
 			this.isEditingTask = false;
-			this._hasUnsavedChanges = false; // Clear unsaved changes flag after save
 			// Reload board and keep drawer open to show updated details
 			await this.loadInitialData();
 		} catch (e) {
@@ -3617,31 +2585,41 @@ export default class KanbanBoard extends LightningElement {
 	}
 
 	handleCancelTaskEdits() {
-		// Check for unsaved changes (MIN-005)
-		if (this._hasUnsavedChanges) {
-			this.showConfirmation = true;
-			this.confirmationConfig = {
-				title: "Discard Changes?",
-				message:
-					"You have unsaved changes. Are you sure you want to discard them?",
-				confirmLabel: "Discard",
-				cancelLabel: "Keep Editing",
-				onConfirm: () => {
-					this.isEditingTask = false;
-					this.editTaskData = {};
-					this._hasUnsavedChanges = false;
-					this.showConfirmation = false;
-				},
-				onCancel: () => {
-					this.showConfirmation = false;
-				},
-			};
-			return;
-		}
-
 		// Discard edits and revert to read-only view
 		this.isEditingTask = false;
 		this.editTaskData = {};
+	}
+
+	async handleDeleteTask() {
+		if (!this.selectedTaskId) return;
+
+		// Confirm deletion with user
+		const taskName = this.selectedTaskTitle || "this task";
+		const confirmed = confirm(
+			`Are you sure you want to delete "${taskName}"?\n\nThis action cannot be undone.`
+		);
+
+		if (!confirmed) return;
+
+		try {
+			this.isSavingEdit = true;
+			await deleteTask(this.selectedTaskId);
+			showToast(this, "Success", "Task deleted successfully", "success");
+
+			// Close the drawer
+			this.showTaskDrawer = false;
+			this.selectedTaskId = null;
+			this.isEditingTask = false;
+			this.editTaskData = {};
+
+			// Refresh the board
+			await this.loadInitialData();
+		} catch (e) {
+			const msg = e?.body?.message || e?.message || "Failed to delete task";
+			showToast(this, "Error", msg, "error");
+		} finally {
+			this.isSavingEdit = false;
+		}
 	}
 
 	// (duplicate getters removed; single definitions exist earlier in file)
@@ -3672,8 +2650,83 @@ export default class KanbanBoard extends LightningElement {
 		}
 	}
 
-	handleColumnToggle(event) {
-		this.handleColumnCollapseToggle(event);
+	handleColumnTitleClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		const columnId = event.currentTarget.dataset.columnId;
+		const statusValue = event.currentTarget.dataset.status;
+
+		// Toggle sort direction if clicking the same column, otherwise set to ascending
+		if (this.sortedColumnId === columnId) {
+			this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
+		} else {
+			this.sortedColumnId = columnId;
+			this.sortDirection = "asc";
+		}
+
+		// Sort the tasks within this column
+		this.sortTasksInColumn(statusValue, this.sortDirection);
+
+		// Show toast to indicate sorting
+		const direction = this.sortDirection === "asc" ? "A-Z" : "Z-A";
+		showToast(
+			this,
+			"Success",
+			`Tasks sorted ${direction} in ${statusValue} column`,
+			"success"
+		);
+	}
+
+	sortTasksInColumn(statusValue, direction) {
+		// Find tasks in the specified column
+		const sortFunction = (a, b) => {
+			// Primary sort by Subject (alphanumeric)
+			const subjectA = (a.TLG_Subject__c || a.Subject || "").toLowerCase();
+			const subjectB = (b.TLG_Subject__c || b.Subject || "").toLowerCase();
+
+			// Natural alphanumeric sorting
+			const result = subjectA.localeCompare(subjectB, undefined, {
+				numeric: true,
+				sensitivity: "base",
+			});
+
+			// Apply direction
+			return direction === "asc" ? result : -result;
+		};
+
+		// Sort tasks in the specified status
+		if (this.tasksByColumn && this.tasksByColumn[statusValue]) {
+			this.tasksByColumn[statusValue].sort(sortFunction);
+		}
+
+		// Also sort in the main tasks array for consistency
+		this.tasks = this.tasks
+			.map((task) => {
+				const taskStatus = this.normalizeStatusValue(
+					task.TLG_Status__c || task.Status__c || ""
+				);
+				return task;
+			})
+			.sort((a, b) => {
+				const statusA = this.normalizeStatusValue(
+					a.TLG_Status__c || a.Status__c || ""
+				);
+				const statusB = this.normalizeStatusValue(
+					b.TLG_Status__c || b.Status__c || ""
+				);
+
+				// Only sort tasks within the target column
+				if (statusA === statusValue && statusB === statusValue) {
+					return sortFunction(a, b);
+				}
+
+				// Keep original order for other columns
+				return 0;
+			});
+
+		// Trigger reactivity
+		this.tasks = [...this.tasks];
 	}
 
 	handleColumnCollapseToggle(event) {
@@ -3703,23 +2756,14 @@ export default class KanbanBoard extends LightningElement {
 				return;
 			}
 
-			// User manually expanded - track this preference
 			this.collapsedColumns.delete(columnId);
-			this.manuallyCollapsedColumns.delete(columnId);
-			this.manuallyExpandedColumns.add(columnId);
 			column.isCollapsed = false;
 			column.ariaExpanded = "true";
 		} else {
-			// User manually collapsed - track this preference
 			this.collapsedColumns.add(columnId);
-			this.manuallyExpandedColumns.delete(columnId);
-			this.manuallyCollapsedColumns.add(columnId);
 			column.isCollapsed = true;
 			column.ariaExpanded = "false";
 		}
-
-		// Refresh derived UI properties so template bindings stay in sync
-		this.updateColumnCounts(column);
 
 		// Force reactivity
 		this._columns = [...this._columns];
@@ -3746,7 +2790,7 @@ export default class KanbanBoard extends LightningElement {
 			const collapsedStatusNames = Array.from(this.collapsedColumns).join(",");
 			await saveUserPreferences({ collapsedColumns: collapsedStatusNames });
 		} catch (error) {
-			logError("Error saving user preferences:", error);
+			console.error("Error saving user preferences:", error);
 			// Silently fail - don't show error toast for background save
 		}
 	}
@@ -3756,14 +2800,13 @@ export default class KanbanBoard extends LightningElement {
 		setTimeout(() => {
 			const columnElements = this.template.querySelectorAll(".kanban-column");
 			columnElements.forEach((columnEl) => {
-				const id = columnEl.dataset.columnId;
-				const model = this._columns.find((c) => c.id === id);
-				if (!model) return;
-				// Keep a data attribute in sync for event logic and CSS hooks
-				columnEl.dataset.collapsed = model.isCollapsed ? "true" : "false";
-				columnEl.dataset.status = model.statusValue;
-				columnEl.dataset.statusLabel = model.title;
-				columnEl.classList.toggle("collapsed", model.isCollapsed);
+				const isCollapsed = columnEl.dataset.collapsed === "true";
+
+				if (isCollapsed) {
+					columnEl.classList.add("collapsed");
+				} else {
+					columnEl.classList.remove("collapsed");
+				}
 			});
 		}, 0);
 	}
@@ -3803,26 +2846,12 @@ export default class KanbanBoard extends LightningElement {
 		const columnsToCollapse = [];
 
 		this._columns.forEach((column) => {
-			// Skip columns that user manually expanded - respect user preference!
-			if (this.manuallyExpandedColumns.has(column.id)) {
-				if (!column.isCollapsed) {
-					expandedCount += 1;
-				}
-				return;
-			}
-
-			// Skip columns already collapsed
 			if (column.isCollapsed) {
 				return;
 			}
 
 			expandedCount += 1;
-
-			// Only auto-collapse if over limit AND user hasn't manually interacted with this column
-			if (
-				expandedCount > limit &&
-				!this.manuallyCollapsedColumns.has(column.id)
-			) {
+			if (expandedCount > limit) {
 				columnsToCollapse.push(column);
 			}
 		});
@@ -3835,7 +2864,6 @@ export default class KanbanBoard extends LightningElement {
 			column.isCollapsed = true;
 			column.ariaExpanded = "false";
 			this.collapsedColumns.add(column.id);
-			// Don't add to manuallyCollapsedColumns - this is auto-collapse
 		});
 
 		this._columns = [...this._columns];
@@ -3864,7 +2892,16 @@ export default class KanbanBoard extends LightningElement {
 		if (event) {
 			event.stopPropagation();
 		}
-		this.safeLoadInitialData();
+		// Clear cache and perform hard reload
+		if (window.caches) {
+			caches.keys().then(function (names) {
+				for (let name of names) {
+					caches.delete(name);
+				}
+			});
+		}
+		// Force hard reload
+		window.location.reload(true);
 	}
 
 	// ========================================
@@ -3908,7 +2945,7 @@ export default class KanbanBoard extends LightningElement {
 		showToast(
 			this,
 			"Info",
-			"Column Reordering feature coming soon! Currently set order numbers in team status records (${STATUS_ORDER_INCREMENT}, ${STATUS_ORDER_INCREMENT*2}, ${STATUS_ORDER_INCREMENT*3}, etc.).",
+			"Column Reordering feature coming soon! Currently set order numbers in team status records (10, 20, 30, etc.).",
 			"info"
 		);
 		this.showSettingsMenu = false;
@@ -3959,47 +2996,6 @@ export default class KanbanBoard extends LightningElement {
 		this.showSettingsMenu = false;
 	}
 
-	handleRefreshColumns(event) {
-		event.stopPropagation();
-		try {
-			// Refresh the board data
-			this.loadKanbanData();
-			showToast(
-				this,
-				"Success",
-				"Board data refreshed successfully!",
-				"success"
-			);
-		} catch (error) {
-			logError("Error refreshing board:", error);
-			showToast(
-				this,
-				"Error",
-				"Failed to refresh board data. Please try again.",
-				"error"
-			);
-		}
-		this.showSettingsMenu = false;
-	}
-
-	handleToggleColumnOrdering(event) {
-		event.stopPropagation();
-		// This would toggle custom column ordering mode
-		showToast(
-			this,
-			"Info",
-			"Custom column ordering feature coming soon!",
-			"info"
-		);
-		this.showSettingsMenu = false;
-	}
-
-	handleBulkActions(event) {
-		event.stopPropagation();
-		this.handleToggleBulkMode();
-		this.showSettingsMenu = false;
-	}
-
 	// Display Options Actions
 	handleToggleDarkMode(event) {
 		event.stopPropagation();
@@ -4007,8 +3003,15 @@ export default class KanbanBoard extends LightningElement {
 		const newDarkMode = !this.isDarkMode;
 		this.isDarkMode = newDarkMode;
 
-		// Persist preference using safe storage utility
-		setStorageItem("kanbanTheme", newDarkMode ? "dark" : "light");
+		// Persist preference
+		try {
+			window.localStorage.setItem(
+				"kanbanTheme",
+				newDarkMode ? "dark" : "light"
+			);
+		} catch (e) {
+			// ignore storage errors
+		}
 
 		// Also notify parent (optional) in case layout wants to sync globally
 		this.dispatchEvent(
@@ -4024,7 +3027,11 @@ export default class KanbanBoard extends LightningElement {
 		event.stopPropagation();
 		const next = !this.isCompactView;
 		this.isCompactView = next;
-		setStorageItem("kanbanCompactView", String(next));
+		try {
+			window.localStorage.setItem("kanbanCompactView", String(next));
+		} catch (e) {
+			/* ignore */
+		}
 		showToast(
 			this,
 			"Success",
@@ -4038,7 +3045,7 @@ export default class KanbanBoard extends LightningElement {
 		// Reset any layout customizations
 		this.collapsedColumns.clear(); // Also reset collapsed state
 		this.saveCollapsedPreferences(); // Save empty state
-		this.safeLoadInitialData();
+		this.loadInitialData();
 		showToast(this, "Success", "Layout reset successfully", "success");
 		this.showSettingsMenu = false;
 	}
@@ -4156,7 +3163,7 @@ export default class KanbanBoard extends LightningElement {
 		if (typeof filters.endDate === "string") this.endDate = filters.endDate;
 		this.updateActiveFilterCount();
 		// For now, reload with current server logic
-		this.safeLoadInitialData();
+		this.loadInitialData();
 	}
 
 	@api
@@ -4170,6 +3177,11 @@ export default class KanbanBoard extends LightningElement {
 		showToast(this, "Info", "Bulk actions are not available yet.", "info");
 	}
 
+	// Expose columns to template
+	get columns() {
+		return this._columns;
+	}
+
 	// Drag and drop handlers (HTML5 DnD)
 	handleCardDragStart(event) {
 		// Custom event from c-kanban-card or native drag event
@@ -4179,27 +3191,6 @@ export default class KanbanBoard extends LightningElement {
 			event.currentTarget.dataset &&
 			event.currentTarget.dataset.id;
 		this._draggedCardId = detailId || targetId || this._draggedCardId;
-
-		// Add dragging class for visual feedback
-		if (event.currentTarget) {
-			event.currentTarget.classList.add("dragging");
-		}
-	}
-
-	handleDragEnd(event) {
-		// Clean up drag state to prevent stuck UI
-		this._draggedCardId = null;
-
-		// Remove dragging class
-		if (event.currentTarget) {
-			event.currentTarget.classList.remove("dragging");
-		}
-
-		// Remove drag-over class from all drop zones
-		const dropZones = this.template.querySelectorAll(".drop-zone.drag-over");
-		dropZones.forEach((zone) => {
-			zone.classList.remove("drag-over");
-		});
 	}
 
 	handleDragOver(event) {
@@ -4227,21 +3218,10 @@ export default class KanbanBoard extends LightningElement {
 		const dataId =
 			event.dataTransfer && event.dataTransfer.getData("text/plain");
 		const cardId = dataId || this._draggedCardId;
-
-		// Always clear drag state even if drop fails
-		const draggedCard = this._draggedCardId;
-		this._draggedCardId = null;
-
-		if (!cardId) {
-			logWarn("Drop failed: No card ID available");
-			return;
-		}
+		if (!cardId) return;
 
 		const targetColumnId = zone ? zone.dataset.columnId : null;
-		if (!targetColumnId) {
-			logWarn("Drop failed: No target column ID");
-			return;
-		}
+		if (!targetColumnId) return;
 
 		// Find target and source columns
 		const targetCol = this._columns.find((c) => c.id === targetColumnId);
@@ -4384,31 +3364,6 @@ export default class KanbanBoard extends LightningElement {
 					"Failed to persist order";
 				showToast(this, "Warning", `Couldn't persist order: ${msg}`, "warning");
 			}
-
-			// UX-002: Prepare undo for this move (last-move undo)
-			const moveEntry = {
-				taskId,
-				fromStatus: oldStatus,
-				toStatus: newStatus,
-				sourceColumnId: sourceCol.id,
-				targetColumnId: targetCol.id,
-			};
-			this._lastMove = moveEntry;
-			this._moveHistory.push(moveEntry);
-			if (this._moveHistory.length > MAX_UNDO_HISTORY_SIZE) {
-				this._moveHistory.shift(); // keep small history buffer
-			}
-			// clear redo stack on new action
-			this._redoStack = [];
-			this.undoMessage = `Task moved to ${targetCol.title}`;
-			this.showUndoBanner = true;
-			if (this._undoTimerId) {
-				clearTimeout(this._undoTimerId);
-			}
-			// Auto-hide after 30 seconds
-			this._undoTimerId = setTimeout(() => {
-				this.clearUndoBanner();
-			}, 30000);
 		} catch (error) {
 			// Rollback optimistic update on error
 			this.rollbackTaskMove(movedCard, oldStatus, sourceCol, targetCol);
@@ -4450,189 +3405,29 @@ export default class KanbanBoard extends LightningElement {
 		this._columns = [...this._columns];
 	}
 
-	// UX-002: Clear undo banner and state
-	clearUndoBanner() {
-		this.showUndoBanner = false;
-		this.undoMessage = "";
-		this._lastMove = null;
-		if (this._undoTimerId) {
-			clearTimeout(this._undoTimerId);
-			this._undoTimerId = null;
-		}
-	}
-
-	// UX-002: Undo the last move action
-	async handleUndoLastMove() {
-		const last = this._lastMove;
-		if (!last) return;
-
-		// Optimistically revert in UI
-		const { taskId, fromStatus, toStatus, sourceColumnId, targetColumnId } =
-			last;
-		const sourceCol = this._columns.find((c) => c.id === sourceColumnId);
-		const targetCol = this._columns.find((c) => c.id === targetColumnId);
-		if (!sourceCol || !targetCol) {
-			this.clearUndoBanner();
-			return;
-		}
-
-		// Find moved card in target column
-		const idx = targetCol.cards.findIndex((c) => c.Id === taskId);
-		if (idx === -1) {
-			this.clearUndoBanner();
-			return;
-		}
-
-		const card = targetCol.cards.splice(idx, 1)[0];
-		card.status = fromStatus;
-		sourceCol.cards.push(card);
-		this.updateColumnCounts(sourceCol);
-		this.updateColumnCounts(targetCol);
-		this._columns = [...this._columns];
-
-		// Hide banner immediately
-		this.clearUndoBanner();
-
-		// Persist revert to server
-		try {
-			await moveTask({ taskId, newStatus: fromStatus });
-			showToast(
-				this,
-				"Info",
-				`Move undone. Returned to ${sourceCol.title}.`,
-				"info"
-			);
-		} catch (err) {
-			// If server revert fails, restore previous state to keep UI consistent
-			const srcIdx = sourceCol.cards.findIndex((c) => c.Id === taskId);
-			if (srcIdx > -1) {
-				const c2 = sourceCol.cards.splice(srcIdx, 1)[0];
-				c2.status = toStatus;
-				targetCol.cards.push(c2);
-				this.updateColumnCounts(sourceCol);
-				this.updateColumnCounts(targetCol);
-				this._columns = [...this._columns];
-			}
-			const msg = err?.body?.message || err?.message || "Failed to undo move";
-			showToast(this, "Error", msg, "error");
-		}
-	}
-
-	// UX-002: Redo the last undone move
-	async handleRedoLastMove() {
-		const entry = this._redoStack?.pop();
-		if (!entry) return;
-		const { taskId, toStatus, fromStatus, sourceColumnId, targetColumnId } =
-			entry;
-		const sourceCol = this._columns.find((c) => c.id === sourceColumnId);
-		const targetCol = this._columns.find((c) => c.id === targetColumnId);
-		if (!sourceCol || !targetCol) return;
-
-		const idx = sourceCol.cards.findIndex((c) => c.Id === taskId);
-		if (idx === -1) return;
-		const card = sourceCol.cards.splice(idx, 1)[0];
-		card.status = toStatus;
-		targetCol.cards.push(card);
-		this.updateColumnCounts(sourceCol);
-		this.updateColumnCounts(targetCol);
-		this._columns = [...this._columns];
-
-		try {
-			await moveTask({ taskId, newStatus: toStatus });
-			showToast(
-				this,
-				"Info",
-				`Redo applied: moved back to ${targetCol.title}.`,
-				"info"
-			);
-		} catch (err) {
-			// Rollback redo
-			const tIdx = targetCol.cards.findIndex((c) => c.Id === taskId);
-			if (tIdx > -1) {
-				const c2 = targetCol.cards.splice(tIdx, 1)[0];
-				c2.status = fromStatus;
-				sourceCol.cards.push(c2);
-				this.updateColumnCounts(sourceCol);
-				this.updateColumnCounts(targetCol);
-				this._columns = [...this._columns];
-			}
-			const msg = err?.body?.message || err?.message || "Failed to redo move";
-			showToast(this, "Error", msg, "error");
-		}
-	}
-
-	// UX-002 + MIN-008: Keyboard handler (Ctrl+Z / Ctrl+Y + shortcuts)
-	handleKeyDown(event) {
-		// Accessibility: Escape key to close modals/drawers
-		if (event.key === "Escape") {
-			if (this.showConfirmation) {
-				event.preventDefault();
-				this.handleConfirmationCancel();
-				return;
-			}
-			if (this.showDelayModal) {
-				event.preventDefault();
-				this.closeDelayModal();
-				return;
-			}
-			if (this.showUnifiedDrawer) {
-				event.preventDefault();
-				this.handleCloseDrawer();
-				return;
-			}
-			if (this.settingsMenuOpen) {
-				event.preventDefault();
-				this.settingsMenuOpen = false;
-				return;
-			}
-		}
-
-		// Avoid interfering with input fields for other shortcuts
-		const target = event.target;
-		const tag = (target?.tagName || "").toLowerCase();
-		if (tag === "input" || tag === "textarea" || target?.isContentEditable) {
-			return;
-		}
-		const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-		const mod = isMac ? event.metaKey : event.ctrlKey;
-		// Ctrl/Cmd-based shortcuts
-		if (!mod) {
-			// Non-modifier single-key shortcuts can be added here if desired
-			return;
-		}
-
-		if (event.key === "z" || event.key === "Z") {
-			// Ctrl+Z: Undo
-			event.preventDefault();
-			// When we undo, push the last move into redo stack
-			if (this._lastMove) {
-				this._redoStack.push(this._lastMove);
-			}
-			this.handleUndoLastMove();
-		} else if (
-			event.key === "y" ||
-			(event.shiftKey && (event.key === "Z" || event.key === "z"))
-		) {
-			// Ctrl+Y or Ctrl+Shift+Z: Redo
-			event.preventDefault();
-			this.handleRedoLastMove();
-		} else if (event.key === "k" || event.key === "K") {
-			// Ctrl+K: Open New Task
-			event.preventDefault();
-			this.handleOpenNewTaskDrawer();
-		} else if ((event.key === "f" || event.key === "F") && event.shiftKey) {
-			// Ctrl+Shift+F: Open Filters (avoid conflict with browser Ctrl+F)
-			event.preventDefault();
-			this.handleOpenFilterDrawer();
-		}
-	}
-
 	// Bubble time log requests up to layout while opening drawer in log-time focus
 	async handleTimeLogRequest(event) {
 		event.stopPropagation();
 		const taskId = event.detail?.taskId;
 		if (taskId) {
-			await this.openTaskDrawer(taskId, "logTime");
+			// Open the dedicated time log drawer
+			this.handleCloseDrawer();
+			this.selectedTaskId = taskId;
+
+			// Load minimal task data for time logging only
+			await this.loadTaskForTimeLog(taskId);
+
+			this.showTimeLogDrawer = true;
+
+			// Initialize log time data with current date
+			const today = new Date().toISOString().split("T")[0];
+			this.logTimeData = {
+				...this.logTimeData,
+				TLG_Date_Record__c: today,
+				Completion__c: this.logTimeData.Completion__c || 0,
+				TLG_Time_Spent__c: this.logTimeData.TLG_Time_Spent__c || "0.00",
+				TLG_Description__c: this.logTimeData.TLG_Description__c || "",
+			};
 		}
 		this.dispatchEvent(
 			new CustomEvent("timelogrequest", {
@@ -4641,6 +3436,36 @@ export default class KanbanBoard extends LightningElement {
 				composed: true,
 			})
 		);
+	}
+
+	async loadTaskForTimeLog(taskId) {
+		try {
+			const card = this._allTasks.find((t) => t.Id === taskId);
+			const raw = (this._rawTasksData || []).find((t) => t.Id === taskId);
+			const task = raw || card;
+
+			if (task) {
+				this.selectedTaskDetails = {
+					Id: task.Id,
+					Name: task.name || task.Name,
+					estimatedHours:
+						task.estimatedHours || task.Total_Estimated_Time__c || "0.00",
+				};
+
+				// Initialize log time data
+				this.logTimeData = {
+					Completion__c: "",
+					TLG_Date_Record__c: new Date().toISOString().split("T")[0],
+					TLG_Description__c: "",
+					TLG_Time_Spent__c: "0.00",
+				};
+
+				await this.refreshTimeAggregates();
+				this.updateRemainingEstimate();
+			}
+		} catch (error) {
+			console.error("Error loading task for time log:", error);
+		}
 	}
 
 	// ============================================================================
@@ -4675,6 +3500,9 @@ export default class KanbanBoard extends LightningElement {
 			team: "teamId",
 			assignedTo: "assignedToId",
 			project: "projectId",
+			category: "category",
+			status: "status",
+			priority: "priority",
 			startDate: "startDate",
 			endDate: "endDate",
 		};
@@ -4693,6 +3521,12 @@ export default class KanbanBoard extends LightningElement {
 			this.userAdjustedAssignedTo = true;
 		} else if (name === "project") {
 			this.selectedProjectId = value;
+		} else if (name === "category") {
+			this.selectedCategoryId = value;
+		} else if (name === "status") {
+			this.selectedStatusId = value;
+		} else if (name === "priority") {
+			this.selectedPriorityId = value;
 		} else if (name === "startDate") {
 			this.startDate = value;
 		} else if (name === "endDate") {
@@ -4705,55 +3539,11 @@ export default class KanbanBoard extends LightningElement {
 	// Handle applying filters
 	handleApplyFilters() {
 		// Reload from server so project/assignee filters are reflected in the dataset
-		this.safeLoadInitialData();
+		this.loadInitialData();
 		// Then apply any client-side only filters (e.g., status/priority/date) to the refreshed dataset
 		this.applyFilters();
 		this.showFilterDrawer = false;
 		showToast(this, "Success", "Filters applied successfully", "success");
-	}
-
-	// UX-011: Handle chart filter events from dashboard
-	handleChartFilter(event) {
-		const { filterType, filterValue, filterLabel } = event.detail;
-
-		if (!filterType || !filterValue) {
-			return;
-		}
-
-		// Initialize filter arrays if needed
-		if (!this._filters[filterType]) {
-			this._filters[filterType] = [];
-		}
-
-		// Toggle the filter value (add if not present, remove if present)
-		const currentFilters = this._filters[filterType];
-		const index = currentFilters.indexOf(filterValue);
-
-		if (index === -1) {
-			// Add filter
-			currentFilters.push(filterValue);
-			showToast(
-				this,
-				"Filter Applied",
-				`Filtered by ${filterLabel}`,
-				"success",
-				"dismissible"
-			);
-		} else {
-			// Remove filter
-			currentFilters.splice(index, 1);
-			showToast(
-				this,
-				"Filter Removed",
-				`Removed filter: ${filterLabel}`,
-				"info",
-				"dismissible"
-			);
-		}
-
-		// Apply the updated filters
-		this.applyFilters();
-		this.updateActiveFilterCount();
 	}
 
 	// Handle clearing all filters
@@ -4765,181 +3555,23 @@ export default class KanbanBoard extends LightningElement {
 		this.selectedTeamId = "";
 		this.selectedAssignedToId = "";
 		this.selectedProjectId = "";
+		this.selectedCategoryId = "";
+		this.selectedStatusId = "";
+		this.selectedPriorityId = "";
 		this.startDate = "";
 		this.endDate = "";
 		this.activeFilterCount = 0;
 		this.userAdjustedAssignedTo = false;
-
-		// Clear quick filters
-		this.quickFilters = {
-			myTasks: false,
-			highPriority: false,
-			dueSoon: false,
-			overdue: false,
-			unassigned: false,
-		};
 
 		// Reset Lightning component values
 		// Lightning components will reflect changes via their bound properties above
 		// No need to manually manipulate DOM for Lightning components
 
 		// Reload default dataset (back to current user's tasks by default), then apply filters (none)
-		this.safeLoadInitialData();
+		this.loadInitialData();
 		this.applyFilters();
 
 		showToast(this, "Success", "All filters cleared", "success");
-	}
-
-	// PERF-001: Virtualization helpers
-	renderedCallback() {
-		// After render, initialize virtualization slices and positions
-		this.initVirtualization();
-	}
-
-	initVirtualization() {
-		if (!Array.isArray(this._columns) || this._columns.length === 0) return;
-		const columnEls = this.template.querySelectorAll(".column-content");
-		const viewportH = window.innerHeight || 800;
-		columnEls.forEach((el) => {
-			const colId = el.dataset.columnId;
-			const col = this._columns.find((c) => c.id === colId);
-			if (!col) return;
-			// Measure top relative to page
-			const rect = el.getBoundingClientRect();
-			const top = rect.top + window.scrollY;
-			col._vsTop = top;
-			col._vsViewportH = viewportH;
-			// Try to measure actual row height from the first rendered card-wrapper
-			let measured = null;
-			try {
-				const firstCard = el.querySelector(".card-wrapper");
-				if (firstCard && firstCard.offsetHeight) {
-					measured = firstCard.offsetHeight;
-				}
-			} catch (e) {
-				/* no-op */
-			}
-			if (measured && measured > 40) {
-				col._vsRowHeight = measured;
-			} else {
-				col._vsRowHeight = this.virtualRowHeight;
-			}
-			const cards = Array.isArray(col.cards) ? col.cards : [];
-			if (!this.enableVirtualScroll || cards.length < this._minVirtualCards) {
-				col.renderedCards = cards;
-				col.vsTopStyle = "height:0px;";
-				col.vsBottomStyle = "height:0px;";
-				return;
-			}
-			this.computeColumnSlice(col);
-		});
-		// Trigger template update
-		this._columns = [...this._columns];
-	}
-
-	handleWindowScroll() {
-		if (!this.enableVirtualScroll) return;
-		let changed = false;
-		for (const col of this._columns) {
-			if (!col || !Array.isArray(col.cards)) continue;
-			if (col.cards.length < this._minVirtualCards) continue;
-			changed = this.computeColumnSlice(col) || changed;
-		}
-		if (changed) {
-			this._columns = [...this._columns];
-		}
-	}
-
-	handleWindowResize() {
-		// Re-initialize measurements on resize
-		this.initVirtualization();
-	}
-
-	computeColumnSlice(col) {
-		const viewportTop = window.scrollY;
-		const viewportBottom = viewportTop + (window.innerHeight || 800);
-		const listTop = col._vsTop || 0;
-		const rowH = col._vsRowHeight || this.virtualRowHeight;
-		const buffer = this.virtualBuffer;
-		const total = col.cards.length;
-		const start = Math.max(
-			0,
-			Math.floor((viewportTop - listTop) / rowH) - buffer
-		);
-		const end = Math.min(
-			total,
-			Math.ceil((viewportBottom - listTop) / rowH) + buffer
-		);
-		const curStart = col._vsStart ?? -1;
-		const curEnd = col._vsEnd ?? -1;
-		if (start === curStart && end === curEnd && col.renderedCards) return false;
-		col._vsStart = start;
-		col._vsEnd = Math.max(end, start);
-		col.renderedCards = col.cards.slice(start, end);
-		const topPad = Math.max(0, start * rowH);
-		const bottomPad = Math.max(0, (total - end) * rowH);
-		col.vsTopStyle = `height:${topPad}px;`;
-		col.vsBottomStyle = `height:${bottomPad}px;`;
-		return true;
-	}
-
-	get virtualScrollLabel() {
-		return this.enableVirtualScroll
-			? "Disable Virtual Scrolling"
-			: "Enable Virtual Scrolling";
-	}
-
-	handleToggleVirtualScroll(event) {
-		if (event) {
-			event.stopPropagation();
-		}
-		this.enableVirtualScroll = !this.enableVirtualScroll;
-		setStorageItem(
-			"kanbanVirtualScroll",
-			this.enableVirtualScroll ? "true" : "false"
-		);
-		if (!this.enableVirtualScroll) {
-			// Render all cards and clear spacers
-			this._columns = this._columns.map((col) => ({
-				...col,
-				renderedCards: Array.isArray(col.cards) ? col.cards : [],
-				vsTopStyle: "height:0px;",
-				vsBottomStyle: "height:0px;",
-				_vsStart: 0,
-				_vsEnd: Array.isArray(col.cards) ? col.cards.length : 0,
-			}));
-		} else {
-			// Reinitialize virtualization slices
-			this.initVirtualization();
-		}
-		this.showSettingsMenu = false;
-	}
-
-	// Quick Filter handlers (UX-006)
-	handleQuickFilterToggle(event) {
-		const filterKey = event.currentTarget.dataset.filterKey;
-		if (!filterKey) return;
-
-		// Toggle the filter
-		this.quickFilters = {
-			...this.quickFilters,
-			[filterKey]: !this.quickFilters[filterKey],
-		};
-
-		// Apply filters immediately
-		this.applyFilters();
-	}
-
-	handleClearQuickFilters() {
-		this.quickFilters = {
-			myTasks: false,
-			highPriority: false,
-			dueSoon: false,
-			overdue: false,
-			unassigned: false,
-		};
-		this.applyFilters();
-		showToast(this, "Success", "Quick filters cleared", "success");
 	}
 
 	// Apply current filters to the task list
@@ -4973,17 +3605,24 @@ export default class KanbanBoard extends LightningElement {
 			);
 		}
 
-		// Apply status filters
-		if (this._filters.status && this._filters.status.length > 0) {
-			filteredTasks = filteredTasks.filter((task) =>
-				this._filters.status.includes(task.status)
+		// Apply category filter (dropdown)
+		if (this._filters.category && this._filters.category !== "") {
+			filteredTasks = filteredTasks.filter(
+				(task) => task.category === this._filters.category
 			);
 		}
 
-		// Apply priority filters
-		if (this._filters.priority && this._filters.priority.length > 0) {
-			filteredTasks = filteredTasks.filter((task) =>
-				this._filters.priority.includes(task.priority)
+		// Apply status filter (dropdown)
+		if (this._filters.status && this._filters.status !== "") {
+			filteredTasks = filteredTasks.filter(
+				(task) => task.status === this._filters.status
+			);
+		}
+
+		// Apply priority filter (dropdown)
+		if (this._filters.priority && this._filters.priority !== "") {
+			filteredTasks = filteredTasks.filter(
+				(task) => task.priority === this._filters.priority
 			);
 		}
 
@@ -5002,58 +3641,6 @@ export default class KanbanBoard extends LightningElement {
 				const taskDate = new Date(task.createdDate || task.lastModifiedDate);
 				return taskDate <= endDate;
 			});
-		}
-
-		// Apply Quick Filters (UX-006)
-		if (this.quickFilters.myTasks) {
-			const currentUserId = this.currentUser?.Id;
-			filteredTasks = filteredTasks.filter(
-				(task) => task.assignedToId === currentUserId
-			);
-		}
-
-		if (this.quickFilters.highPriority) {
-			filteredTasks = filteredTasks.filter((task) => {
-				const priority = (task.priority || "").toLowerCase();
-				return (
-					priority === "high" ||
-					priority === "critical" ||
-					priority === "urgent"
-				);
-			});
-		}
-
-		if (this.quickFilters.dueSoon) {
-			const today = new Date();
-			today.setHours(0, 0, 0, 0);
-			const threeDaysFromNow = new Date(
-				today.getTime() + 3 * 24 * 60 * 60 * 1000
-			);
-
-			filteredTasks = filteredTasks.filter((task) => {
-				if (!task.dueDate) return false;
-				const dueDate = new Date(task.dueDate);
-				dueDate.setHours(0, 0, 0, 0);
-				return dueDate >= today && dueDate <= threeDaysFromNow;
-			});
-		}
-
-		if (this.quickFilters.overdue) {
-			const today = new Date();
-			today.setHours(0, 0, 0, 0);
-
-			filteredTasks = filteredTasks.filter((task) => {
-				if (!task.dueDate) return false;
-				const dueDate = new Date(task.dueDate);
-				dueDate.setHours(0, 0, 0, 0);
-				return dueDate < today;
-			});
-		}
-
-		if (this.quickFilters.unassigned) {
-			filteredTasks = filteredTasks.filter(
-				(task) => !task.assignedToId || task.assignedToId === ""
-			);
 		}
 
 		// Update the current task collection and reorganize columns
@@ -5079,118 +3666,9 @@ export default class KanbanBoard extends LightningElement {
 		this.activeFilterCount = count;
 	}
 
-	// Handle filter checkbox selection for status/priority
-	handleFilterCheckboxChange(event) {
-		// Lightning input checkbox uses event.detail.checked
-		const checked = event.detail.checked;
-
-		// Get filter metadata from the lightning-input element's dataset
-		const target = event.target;
-		const filterType = target.dataset.filterType;
-		const filterValue = target.dataset.filterValue;
-
-		if (!filterType || !filterValue) {
-			return;
-		}
-
-		// Initialize array if needed
-		if (!this._filters[filterType]) {
-			this._filters[filterType] = [];
-		}
-
-		if (checked) {
-			// Add to filter array if not already present
-			if (!this._filters[filterType].includes(filterValue)) {
-				this._filters[filterType] = [...this._filters[filterType], filterValue];
-			}
-		} else {
-			// Remove from filter array
-			this._filters[filterType] = this._filters[filterType].filter(
-				(item) => item !== filterValue
-			);
-		}
-
-		this.updateActiveFilterCount();
-
-		// Force re-render of checkbox options to reflect new checked states
-		// By reassigning the _filters object, we trigger getters to recompute
-		this._filters = { ...this._filters };
-	}
-
-	// Update visual states of checkbox items (legacy - may not be needed with reactive getters)
-	updateCheckboxItemStates() {
-		// This method is now handled reactively via statusFilterOptions and priorityFilterOptions getters
-		// which recompute checked state whenever _filters changes
-		// Keeping method for potential future use
-	}
-
 	// Get filter values for template rendering
 	get currentFilters() {
 		return this._filters;
-	}
-
-	// Check if a filter value is active (used programmatically, not in template)
-	isFilterActive(filterType, filterValue) {
-		return (
-			this._filters[filterType] &&
-			this._filters[filterType].includes(filterValue)
-		);
-	}
-
-	// Get available status options for filtering
-	get statusFilterOptions() {
-		// Use original tasks if available, otherwise fall back to current tasks
-		const tasksToCheck = this._originalTasks || this._allTasks || [];
-		const presentStatuses = new Set();
-		tasksToCheck.forEach((task) => {
-			const s = task && task.status;
-			if (s) presentStatuses.add(s);
-		});
-
-		// Prefer board column order for sequence, but only include statuses present in dataset
-		const inColumnOrder = [];
-		const seen = new Set();
-		(this._columns || []).forEach((col) => {
-			const s = col && col.statusValue;
-			if (!s) return;
-			// Normalize against mapped card status values
-			if (presentStatuses.has(s) && !seen.has(s)) {
-				seen.add(s);
-				inColumnOrder.push(s);
-			}
-		});
-
-		// Append any remaining statuses (should be rare) in alpha order
-		const leftovers = Array.from(presentStatuses)
-			.filter((s) => !seen.has(s))
-			.sort();
-		const ordered = [...inColumnOrder, ...leftovers];
-
-		return ordered.map((status) => ({
-			value: status,
-			label: status,
-			checked: this._filters.status && this._filters.status.includes(status),
-		}));
-	}
-
-	// Get available priority options for filtering
-	get priorityFilterOptions() {
-		const tasksToCheck = this._originalTasks || this._allTasks || [];
-		const priorities = new Set();
-		tasksToCheck.forEach((task) => {
-			if (task.priority) {
-				priorities.add(task.priority);
-			}
-		});
-
-		return Array.from(priorities)
-			.sort()
-			.map((priority) => ({
-				value: priority,
-				label: priority,
-				checked:
-					this._filters.priority && this._filters.priority.includes(priority),
-			}));
 	}
 
 	// Priority options for form dropdown
@@ -5404,35 +3882,6 @@ export default class KanbanBoard extends LightningElement {
 			});
 	}
 
-	/**
-	 * Start polling for comment updates
-	 * @param {String} taskId - Task ID to poll comments for
-	 */
-	startCommentPolling(taskId) {
-		// Stop any existing polling first
-		this.stopCommentPolling();
-
-		if (!taskId) return;
-
-		// Set up polling interval
-		this._commentPollingInterval = setInterval(() => {
-			// Only poll if we have a valid task and are not already loading
-			if (this.selectedTaskId && !this.isLoadingComments) {
-				this.loadComments(this.selectedTaskId);
-			}
-		}, this._commentPollingFrequency);
-	}
-
-	/**
-	 * Stop polling for comment updates
-	 */
-	stopCommentPolling() {
-		if (this._commentPollingInterval) {
-			clearInterval(this._commentPollingInterval);
-			this._commentPollingInterval = null;
-		}
-	}
-
 	handleNewCommentChange(event) {
 		this.newCommentText = event.detail?.value ?? event.target?.value ?? "";
 	}
@@ -5478,14 +3927,145 @@ export default class KanbanBoard extends LightningElement {
 		}
 	}
 
+	handleEditComment(event) {
+		const commentId = event.currentTarget?.dataset?.id;
+		if (!commentId) return;
+
+		// Find the comment and set it to editing mode
+		this.comments = this.comments.map((c) => {
+			if (c.id === commentId) {
+				return {
+					...c,
+					isEditing: true,
+					editText: c.text,
+				};
+			}
+			return c;
+		});
+	}
+
+	handleCommentEditChange(event) {
+		const commentId = event.currentTarget?.dataset?.id;
+		const newValue = event.detail?.value ?? event.target?.value ?? "";
+
+		// Update the editText for this comment
+		this.comments = this.comments.map((c) => {
+			if (c.id === commentId) {
+				return {
+					...c,
+					editText: newValue,
+				};
+			}
+			return c;
+		});
+	}
+
+	handleCancelCommentEdit(event) {
+		const commentId = event.currentTarget?.dataset?.id;
+		if (!commentId) return;
+
+		// Cancel editing mode
+		this.comments = this.comments.map((c) => {
+			if (c.id === commentId) {
+				const { isEditing, editText, ...rest } = c;
+				return rest;
+			}
+			return c;
+		});
+	}
+
+	async handleSaveCommentEdit(event) {
+		const commentId = event.currentTarget?.dataset?.id;
+		if (!commentId) return;
+
+		const comment = this.comments.find((c) => c.id === commentId);
+		if (!comment) return;
+
+		const newText = (comment.editText || "").trim();
+		if (!newText) {
+			showToast(this, "Info", "Comment cannot be empty.", "info");
+			return;
+		}
+
+		try {
+			const result = await updateTaskComment(commentId, newText);
+
+			// Update the comment in the list
+			this.comments = this.comments.map((c) => {
+				if (c.id === commentId) {
+					return {
+						...c,
+						text: result?.text || newText,
+						isEditing: false,
+						editText: undefined,
+					};
+				}
+				return c;
+			});
+
+			showToast(this, "Success", "Comment updated", "success");
+		} catch (e) {
+			const msg = e?.body?.message || e?.message || "Failed to update comment";
+			showToast(this, "Error", msg, "error");
+		}
+	}
+
+	async handleDeleteComment(event) {
+		const commentId = event.currentTarget?.dataset?.id;
+		if (!commentId) return;
+
+		// Confirm deletion
+		const confirmed = confirm(
+			"Are you sure you want to delete this comment?\n\nThis action cannot be undone."
+		);
+
+		if (!confirmed) return;
+
+		try {
+			await deleteTaskComment(commentId);
+
+			// Remove the comment from the list
+			this.comments = this.comments.filter((c) => c.id !== commentId);
+
+			this._announce("Comment deleted");
+			showToast(this, "Success", "Comment deleted", "success");
+		} catch (e) {
+			const msg = e?.body?.message || e?.message || "Failed to delete comment";
+			showToast(this, "Error", msg, "error");
+		}
+	}
+
 	// Mentions search
-	handleMentionInput(event) {
+	async handleMentionInput(event) {
 		const text = event.target.value || "";
 		this.mentionSearchText = text;
 		this.mentionResults = [];
-		// Call debounced search function
-		if (this._debouncedMentionSearch) {
-			this._debouncedMentionSearch(text);
+		if (!text || text.trim().length < 2) return;
+		this.isSearchingMentions = true;
+		try {
+			const [internalUsers, portalUsers] = await Promise.all([
+				searchInternalUsersForTagging(text.trim()),
+				searchPortalUsersForTagging(text.trim(), null),
+			]);
+			const merged = [...(internalUsers || []), ...(portalUsers || [])];
+			// Unique by Id
+			const seen = new Set();
+			const results = [];
+			merged.forEach((u) => {
+				const id = u.Id || u.id;
+				if (!id || seen.has(id)) return;
+				seen.add(id);
+				results.push({
+					userId: id,
+					name: u.Name || u.name,
+					username: u.Username || u.username,
+				});
+			});
+			this.mentionResults = results.slice(0, 10);
+		} catch (e) {
+			// silent
+		} finally {
+			this.isSearchingMentions = false;
 		}
 	}
 
@@ -5507,6 +4087,376 @@ export default class KanbanBoard extends LightningElement {
 		this.selectedMentions = this.selectedMentions.filter(
 			(m) => m.userId !== id
 		);
+	}
+
+	// =====================
+	// FILE UPLOAD METHODS
+	// =====================
+	loadTaskFiles(taskId) {
+		if (!taskId) return;
+
+		getTaskFiles({ taskId })
+			.then((files) => {
+				this.taskFiles = (files || []).map((file) => ({
+					id: file.ContentDocumentId || file.Id,
+					title: file.Title || file.FileName || "Untitled",
+					size: this.formatFileSize(file.ContentSize || 0),
+					createdBy: file.CreatedByName || "Unknown",
+					createdDate: file.CreatedDate
+						? new Date(file.CreatedDate).toLocaleDateString()
+						: "",
+					downloadUrl: `/sfc/servlet.shepherd/document/download/${
+						file.ContentDocumentId || file.Id
+					}`,
+					iconName: this.getFileIcon(file.FileExtension || file.FileType),
+				}));
+			})
+			.catch((e) => {
+				const msg = e?.body?.message || e?.message || "Failed to load files";
+				showToast(this, "Error", msg, "error");
+			});
+	}
+
+	handleFileUploadClick() {
+		const input = this.template.querySelector("[data-file-input]");
+		if (input) {
+			input.click();
+		}
+	}
+
+	handleFileSelect(event) {
+		const files = event.target.files;
+		if (files && files.length > 0) {
+			this.uploadFile(files[0]);
+		}
+	}
+
+	handleFileDragOver(event) {
+		event.preventDefault();
+		event.currentTarget.classList.add("drag-over");
+	}
+
+	handleFileDragLeave(event) {
+		event.currentTarget.classList.remove("drag-over");
+	}
+
+	handleFileDrop(event) {
+		event.preventDefault();
+		event.currentTarget.classList.remove("drag-over");
+
+		const files = event.dataTransfer.files;
+		if (files && files.length > 0) {
+			this.uploadFile(files[0]);
+		}
+	}
+
+	async uploadFile(file) {
+		if (!this.selectedTaskId) {
+			showToast(this, "Error", "No task selected", "error");
+			return;
+		}
+
+		// Check file size (10MB limit)
+		const maxSize = 10 * 1024 * 1024; // 10MB
+		if (file.size > maxSize) {
+			showToast(this, "Error", "File size exceeds 10MB limit", "error");
+			return;
+		}
+
+		this.isUploadingFile = true;
+
+		try {
+			// Read file as base64
+			const base64 = await this.readFileAsBase64(file);
+
+			// Note: File upload via Apex is commented out in KanbanBoardController
+			// This would need to be enabled or we'd use a different approach
+			// For now, we'll use the Salesforce Files component approach
+
+			showToast(
+				this,
+				"Info",
+				"Please use the Salesforce Files component to upload files directly. File upload via LWC is being configured.",
+				"info"
+			);
+
+			// TODO: Implement actual file upload when Apex method is uncommented
+			// await uploadFileToTasks({
+			//   base64Data: base64,
+			//   fileName: file.name,
+			//   taskIds: [this.selectedTaskId]
+			// });
+		} catch (e) {
+			const msg = e?.body?.message || e?.message || "Failed to upload file";
+			showToast(this, "Error", msg, "error");
+		} finally {
+			this.isUploadingFile = false;
+		}
+	}
+
+	readFileAsBase64(file) {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => {
+				const base64 = reader.result.split(",")[1];
+				resolve(base64);
+			};
+			reader.onerror = () => reject(reader.error);
+			reader.readAsDataURL(file);
+		});
+	}
+
+	handleDeleteFile(event) {
+		const fileId = event.currentTarget?.dataset?.fileId;
+		if (!fileId) return;
+
+		const confirmed = confirm(
+			"Are you sure you want to delete this file?\n\nThis action cannot be undone."
+		);
+
+		if (!confirmed) return;
+
+		// TODO: Implement file deletion via Apex
+		showToast(
+			this,
+			"Info",
+			"File deletion via LWC is being configured. Please use Salesforce Files component.",
+			"info"
+		);
+	}
+
+	formatFileSize(bytes) {
+		if (bytes === 0) return "0 Bytes";
+		const k = 1024;
+		const sizes = ["Bytes", "KB", "MB", "GB"];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+	}
+
+	getFileIcon(extension) {
+		const ext = (extension || "").toLowerCase().replace(".", "");
+		const iconMap = {
+			pdf: "doctype:pdf",
+			doc: "doctype:word",
+			docx: "doctype:word",
+			xls: "doctype:excel",
+			xlsx: "doctype:excel",
+			ppt: "doctype:ppt",
+			pptx: "doctype:ppt",
+			jpg: "doctype:image",
+			jpeg: "doctype:image",
+			png: "doctype:image",
+			gif: "doctype:image",
+			zip: "doctype:zip",
+			txt: "doctype:txt",
+			csv: "doctype:csv",
+			html: "doctype:html",
+			xml: "doctype:xml",
+		};
+		return iconMap[ext] || "doctype:attachment";
+	}
+
+	// =====================
+	// BULK OPERATIONS METHODS
+	// =====================
+	handleToggleBulkMode() {
+		this.isBulkMode = !this.isBulkMode;
+		if (!this.isBulkMode) {
+			// Clear selection when exiting bulk mode
+			this.selectedTaskIds = new Set();
+			// Re-organize to update isSelected on all cards
+			this.organizeTasksByStatus();
+		}
+	}
+
+	handleTaskSelectionChange(event) {
+		const taskId = event.detail.taskId;
+		const isSelected = event.detail.isSelected;
+
+		const newSelection = new Set(this.selectedTaskIds);
+
+		if (isSelected) {
+			newSelection.add(taskId);
+		} else {
+			newSelection.delete(taskId);
+		}
+
+		this.selectedTaskIds = newSelection;
+
+		// Update the isSelected property on cards
+		this.organizeTasksByStatus();
+	}
+
+	handleTaskCheckboxChange(event) {
+		const taskId = event.currentTarget?.dataset?.taskId;
+		if (!taskId) return;
+
+		const checked = event.target.checked;
+		const newSelection = new Set(this.selectedTaskIds);
+
+		if (checked) {
+			newSelection.add(taskId);
+		} else {
+			newSelection.delete(taskId);
+		}
+
+		this.selectedTaskIds = newSelection;
+	}
+
+	isTaskSelected(taskId) {
+		return this.selectedTaskIds.has(taskId);
+	}
+
+	handleBulkAssign() {
+		if (this.selectedTaskIds.size === 0) {
+			showToast(this, "Warning", "Please select tasks first", "warning");
+			return;
+		}
+		this.showBulkAssignModal = true;
+	}
+
+	handleBulkStatusChange() {
+		if (this.selectedTaskIds.size === 0) {
+			showToast(this, "Warning", "Please select tasks first", "warning");
+			return;
+		}
+		this.showBulkStatusModal = true;
+	}
+
+	handleBulkPriorityChange() {
+		if (this.selectedTaskIds.size === 0) {
+			showToast(this, "Warning", "Please select tasks first", "warning");
+			return;
+		}
+		this.showBulkPriorityModal = true;
+	}
+
+	closeBulkAssignModal() {
+		this.showBulkAssignModal = false;
+		this.bulkAssignUserId = "";
+	}
+
+	closeBulkStatusModal() {
+		this.showBulkStatusModal = false;
+		this.bulkStatusValue = "";
+	}
+
+	closeBulkPriorityModal() {
+		this.showBulkPriorityModal = false;
+		this.bulkPriorityValue = "";
+	}
+
+	handleBulkAssignUserChange(event) {
+		this.bulkAssignUserId = event.detail.value;
+	}
+
+	handleBulkStatusValueChange(event) {
+		this.bulkStatusValue = event.detail.value;
+	}
+
+	handleBulkPriorityValueChange(event) {
+		this.bulkPriorityValue = event.detail.value;
+	}
+
+	async confirmBulkAssign() {
+		if (!this.bulkAssignUserId) {
+			showToast(this, "Warning", "Please select a user", "warning");
+			return;
+		}
+
+		await this.performBulkUpdate(
+			{
+				TLG_Assigned_To__c: this.bulkAssignUserId,
+			},
+			"Tasks assigned successfully"
+		);
+		this.closeBulkAssignModal();
+	}
+
+	async confirmBulkStatus() {
+		if (!this.bulkStatusValue) {
+			showToast(this, "Warning", "Please select a status", "warning");
+			return;
+		}
+
+		await this.performBulkUpdate(
+			{
+				TLG_Status__c: this.bulkStatusValue,
+			},
+			"Task status updated successfully"
+		);
+		this.closeBulkStatusModal();
+	}
+
+	async confirmBulkPriority() {
+		if (!this.bulkPriorityValue) {
+			showToast(this, "Warning", "Please select a priority", "warning");
+			return;
+		}
+
+		await this.performBulkUpdate(
+			{
+				TLG_Priority__c: this.bulkPriorityValue,
+			},
+			"Task priority updated successfully"
+		);
+		this.closeBulkPriorityModal();
+	}
+
+	handleBulkAssignUserChange(event) {
+		this.bulkAssignUserId = event.detail.value;
+	}
+
+	handleBulkStatusValueChange(event) {
+		this.bulkStatusValue = event.detail.value;
+	}
+
+	handleBulkPriorityValueChange(event) {
+		this.bulkPriorityValue = event.detail.value;
+	}
+
+	handleBulkDelete() {
+		if (this.selectedTaskIds.size === 0) {
+			showToast(this, "Warning", "Please select tasks first", "warning");
+			return;
+		}
+
+		const confirmed = confirm(
+			`Are you sure you want to delete ${this.selectedTaskIds.size} task(s)?\n\nThis action cannot be undone.`
+		);
+
+		if (!confirmed) return;
+
+		// TODO: Implement bulk delete via Apex
+		showToast(
+			this,
+			"Info",
+			"Bulk delete is being configured. Please delete tasks individually for now.",
+			"info"
+		);
+	}
+
+	async performBulkUpdate(fieldUpdates, successMessage) {
+		const taskIds = Array.from(this.selectedTaskIds);
+
+		try {
+			await bulkUpdateTasks({
+				taskIds,
+				fieldUpdates,
+			});
+
+			showToast(this, "Success", successMessage, "success");
+
+			// Clear selection and exit bulk mode
+			this.selectedTaskIds = new Set();
+			this.isBulkMode = false;
+
+			// Refresh board
+			await this.loadBoardData();
+		} catch (e) {
+			const msg = e?.body?.message || e?.message || "Failed to update tasks";
+			showToast(this, "Error", msg, "error");
+		}
 	}
 
 	_announce(message) {

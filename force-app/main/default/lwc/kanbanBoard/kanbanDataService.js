@@ -23,11 +23,17 @@ export class KanbanDataService {
 		"In Progress",
 		"Ready for Review",
 		"Waiting on Client",
-		"On hold",
+		"On Hold",
 		"Reopened",
 		"Completed",
 		"Closed",
 		"Cancelled",
+		"QA",
+		"Pending",
+		"Testing",
+		"Deployed",
+		"Backlog",
+		"Done",
 	];
 
 	// Valid priority values
@@ -171,7 +177,7 @@ export class KanbanDataService {
 	 */
 	static validateFileUpload(file) {
 		const errors = [];
-		const maxSize = 10 * 1024 * 1024; // 10MB - aligned with backend FileManagementService limit
+		const maxSize = 5 * 1024 * 1024; // 5MB
 		const allowedTypes = [
 			"image/jpeg",
 			"image/png",

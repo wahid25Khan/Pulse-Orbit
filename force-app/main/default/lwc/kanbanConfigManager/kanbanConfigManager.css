@@ -15,3 +15,240 @@
     border: none;
     background: transparent;
 }
+
+/* Glossy dark style for collapsed color columns */
+td:nth-child(10) .color-cell,
+td:nth-child(11) .color-cell {
+    background: linear-gradient(145deg, #1e293b 0%, #0f172a 50%, #1e293b 100%);
+    padding: 0.75rem;
+    border-radius: 8px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+td:nth-child(10) .color-cell .hex,
+td:nth-child(11) .color-cell .hex {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #e2e8f0;
+    backdrop-filter: blur(4px);
+}
+
+td:nth-child(10) .color-cell .picker,
+td:nth-child(11) .color-cell .picker {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Header styling for collapsed columns */
+th:nth-child(10) .slds-truncate,
+th:nth-child(11) .slds-truncate {
+    background: linear-gradient(145deg, #374151 0%, #1f2937 50%, #374151 100%);
+    padding: 0.5rem;
+    border-radius: 6px;
+    color: #f8fafc;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Universal glossy enhancement for collapsed color columns */
+td:nth-child(10) .color-cell,
+td:nth-child(11) .color-cell {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add glossy overlay effect using CSS variables for theme adaptation */
+td:nth-child(10) .color-cell::before,
+td:nth-child(11) .color-cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(145deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            rgba(255, 255, 255, 0.05) 25%,
+            rgba(0, 0, 0, 0.05) 50%,
+            rgba(0, 0, 0, 0.1) 100%);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* Enhanced shadows and effects for both themes */
+td:nth-child(10) .color-cell,
+td:nth-child(11) .color-cell {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+        0 3px 6px rgba(0, 0, 0, 0.15),
+        0 6px 12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Dark theme specific enhancements */
+.dark-theme td:nth-child(10) .color-cell,
+.dark-theme td:nth-child(11) .color-cell,
+[data-theme="dark"] td:nth-child(10) .color-cell,
+[data-theme="dark"] td:nth-child(11) .color-cell {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+        0 3px 6px rgba(0, 0, 0, 0.4),
+        0 6px 12px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Universal input styling with theme adaptation */
+td:nth-child(10) .color-cell .hex,
+td:nth-child(11) .color-cell .hex {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: inherit;
+    backdrop-filter: blur(8px);
+    box-shadow:
+        inset 0 1px 2px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme td:nth-child(10) .color-cell .hex,
+.dark-theme td:nth-child(11) .color-cell .hex,
+[data-theme="dark"] td:nth-child(10) .color-cell .hex,
+[data-theme="dark"] td:nth-child(11) .color-cell .hex {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #f1f5f9;
+}
+
+td:nth-child(10) .color-cell .picker,
+td:nth-child(11) .color-cell .picker {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.2),
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+}
+
+.dark-theme td:nth-child(10) .color-cell .picker,
+.dark-theme td:nth-child(11) .color-cell .picker,
+[data-theme="dark"] td:nth-child(10) .color-cell .picker,
+[data-theme="dark"] td:nth-child(11) .color-cell .picker {
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.15),
+        0 3px 6px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Universal header styling that adapts to theme */
+th:nth-child(10) .slds-truncate,
+th:nth-child(11) .slds-truncate {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Enhanced header effects for dark theme */
+.dark-theme th:nth-child(10) .slds-truncate,
+.dark-theme th:nth-child(11) .slds-truncate,
+[data-theme="dark"] th:nth-child(10) .slds-truncate,
+[data-theme="dark"] th:nth-child(11) .slds-truncate {
+    background: linear-gradient(145deg, #1f2937 0%, #111827 50%, #1f2937 100%);
+    color: #f9fafb;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Universal hover effects for collapsed columns */
+td:nth-child(10) .color-cell:hover,
+td:nth-child(11) .color-cell:hover {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 8px 16px rgba(0, 0, 0, 0.1),
+        0 0 20px rgba(59, 130, 246, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced hover for dark theme */
+.dark-theme td:nth-child(10) .color-cell:hover,
+.dark-theme td:nth-child(11) .color-cell:hover,
+[data-theme="dark"] td:nth-child(10) .color-cell:hover,
+[data-theme="dark"] td:nth-child(11) .color-cell:hover {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 8px 16px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(59, 130, 246, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Universal focus states for inputs */
+td:nth-child(10) .color-cell .hex:focus,
+td:nth-child(11) .color-cell .hex:focus {
+    box-shadow:
+        inset 0 1px 2px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 0 0 2px rgba(59, 130, 246, 0.3),
+        0 0 20px rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    outline: none;
+}
+
+.dark-theme td:nth-child(10) .color-cell .hex:focus,
+.dark-theme td:nth-child(11) .color-cell .hex:focus,
+[data-theme="dark"] td:nth-child(10) .color-cell .hex:focus,
+[data-theme="dark"] td:nth-child(11) .color-cell .hex:focus {
+    box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.15),
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 0 2px rgba(59, 130, 246, 0.3),
+        0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+td:nth-child(10) .color-cell .picker:focus,
+td:nth-child(11) .color-cell .picker:focus {
+    box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.2),
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        0 0 0 2px rgba(59, 130, 246, 0.4),
+        0 0 20px rgba(59, 130, 246, 0.25);
+    border: 2px solid rgba(59, 130, 246, 0.6);
+    outline: none;
+}
+
+.dark-theme td:nth-child(10) .color-cell .picker:focus,
+.dark-theme td:nth-child(11) .color-cell .picker:focus,
+[data-theme="dark"] td:nth-child(10) .color-cell .picker:focus,
+[data-theme="dark"] td:nth-child(11) .color-cell .picker:focus {
+    box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.2),
+        0 3px 6px rgba(0, 0, 0, 0.4),
+        0 0 0 2px rgba(59, 130, 246, 0.4),
+        0 0 20px rgba(59, 130, 246, 0.25);
+}

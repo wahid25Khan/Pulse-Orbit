@@ -8,7 +8,13 @@ public with sharing class KanbanConfigController {
                    TLG_Color_Code__c,
                    TLG_Display_Order__c,
                    TLG_Is_Active__c,
-                   TLG_Max_Expanded_Columns__c
+                   TLG_Max_Expanded_Columns__c,
+                   TLG_Card_Gradient_Light_Top__c,
+                   TLG_Card_Gradient_Light_Bottom__c,
+                   TLG_Card_Gradient_Dark_Top__c,
+                   TLG_Card_Gradient_Dark_Bottom__c,
+                   TLG_Collapsed_Color_Start__c,
+                   TLG_Collapsed_Color_End__c
             FROM TLG_Kanban_Board_Config__c
             ORDER BY TLG_Display_Order__c ASC, TLG_Status_Name__c ASC
         ];

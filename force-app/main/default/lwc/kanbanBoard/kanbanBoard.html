@@ -1,392 +1,299 @@
 <template>
-	<!-- Accessibility: Skip navigation link -->
-	<a href="#main-content" class="skip-link">Skip to main content</a>
+	<div class={computedRootClass}>
+		<!-- Sidebar Navigation -->
+		<aside
+			class="unified-sidebar"
+			role="navigation"
+			aria-label="Kanban navigation"
+		>
+			<button
+				class="sidebar-collapse-btn"
+				onclick={handleToggleSidebar}
+				title="Collapse sidebar"
+				aria-label="Toggle sidebar"
+			>
+				<lightning-icon
+					icon-name="utility:chevronleft"
+					size="x-small"
+				></lightning-icon>
+			</button>
 
-	<div class="{computedRootClass}">
-		<!-- Left Sidebar Navigation -->
-		<aside class="left-sidebar" role="navigation" aria-label="Main navigation">
-			<!-- App Logo/Brand -->
-			<div class="sidebar-brand">
+			<div class="sidebar-header">
 				<lightning-icon
 					icon-name="standard:channel_program_levels"
 					size="small"
-					class="brand-icon"
+					class="sidebar-app-icon"
 				></lightning-icon>
+				<span class="sidebar-title">Pulse Orbit</span>
 			</div>
 
-			<!-- Navigation Icons -->
-			<nav class="sidebar-nav">
+			<nav class="sidebar-nav" aria-label="Primary">
 				<button
-					class="{navClassDashboard}"
+					class={navClassDashboard}
 					data-key="dashboard"
-					onclick="{handleNavClick}"
-					title="Dashboard"
+					onclick={handleNavClick}
+					title="Dashboards"
 				>
 					<lightning-icon
 						icon-name="utility:dashboard"
-						size="small"
+						size="x-small"
 					></lightning-icon>
-					<span class="nav-label">Dashboard</span>
+					<span>Dashboards</span>
+					<span class="badge badge-soon">Soon</span>
 				</button>
 				<button
-					class="{navClassKanban}"
+					class={navClassKanban}
 					data-key="kanban"
-					onclick="{handleNavClick}"
+					onclick={handleNavClick}
 					title="Kanban Board"
 				>
 					<lightning-icon
-						icon-name="utility:kanban"
-						size="small"
+						icon-name="standard:kanban"
+						size="x-small"
 					></lightning-icon>
-					<span class="nav-label">Kanban</span>
+					<span>Kanban Board</span>
 				</button>
 				<button
-					class="{navClassTasks}"
+					class={navClassTasks}
 					data-key="tasks"
-					onclick="{handleNavClick}"
+					onclick={handleNavClick}
 					title="Task Management"
 				>
 					<lightning-icon
-						icon-name="utility:task"
-						size="small"
+						icon-name="standard:task"
+						size="x-small"
 					></lightning-icon>
-					<span class="nav-label">Tasks</span>
+					<span>Task Management</span>
+					<span class="badge badge-soon">Soon</span>
 				</button>
 			</nav>
 
-			<!-- Theme Toggle at Bottom -->
+			<div
+				class="sidebar-divider"
+				role="separator"
+				aria-label="Theme Controls"
+			></div>
+
 			<div class="sidebar-footer">
 				<button
-					class="theme-toggle"
-					onclick="{handleToggleDarkMode}"
-					title="{darkModeTitle}"
+					class="theme-toggle-btn"
+					onclick={handleToggleDarkMode}
+					title={themeToggleTitle}
 				>
-					<template if:true="{isDarkMode}">
-						<lightning-icon
-							icon-name="utility:light_bulb"
-							size="small"
-						></lightning-icon>
-					</template>
-					<template if:false="{isDarkMode}">
-						<lightning-icon
-							icon-name="utility:moon"
-							size="small"
-						></lightning-icon>
-					</template>
+					<lightning-icon
+						icon-name={themeIcon}
+						size="x-small"
+					></lightning-icon>
+					<span>{themeLabel}</span>
 				</button>
 			</div>
 		</aside>
 
-		<div class="main-content" id="main-content">
+		<!-- Sidebar Expand Button (shown when collapsed) -->
+		<button
+			class="sidebar-expand-btn"
+			onclick={handleToggleSidebar}
+			title="Expand sidebar"
+			aria-label="Expand sidebar"
+		>
+			<lightning-icon
+				icon-name="utility:chevronright"
+				size="small"
+			></lightning-icon>
+		</button>
+
+		<div class="main-content">
 			<!-- Dashboard View -->
-			<template if:true="{isDashboardView}">
-				<div class="dashboard-container">
-					<c-kanban-dashboard is-dark-mode="{isDarkMode}"></c-kanban-dashboard>
-				</div>
+			<template if:true={isDashboardView}>
+				<c-kanban-dashboard is-dark-mode={isDarkMode}></c-kanban-dashboard>
 			</template>
+
 			<!-- Kanban Board View -->
-			<!-- Kanban Board View -->
-			<template if:true="{isKanbanView}">
-				<div class="kanban-board-container">
-					<!-- Kanban Board Header -->
-					<div class="kanban-view-header">
-						<div class="header-content">
-							<div class="header-left">
-								<lightning-icon
-									class="kanban-header-icon"
-									icon-name="utility:kanban"
-									size="medium"
-								></lightning-icon>
-								<h1 class="kanban-view-title">Kanban Board</h1>
-								<template if:true="{hasActiveFilters}">
-									<div class="column-ordering-indicator">
-										<lightning-icon
-											class="ordering-icon"
-											icon-name="utility:filterList"
-											size="xx-small"
-										></lightning-icon>
-										<span class="ordering-text"
-											>{activeFilterCount} filters active</span
-										>
-									</div>
-								</template>
-							</div>
-							<div class="header-actions">
-								<!-- Filter Button -->
-								<button
-									class="action-btn slds-button slds-button_neutral"
-									onclick="{handleOpenFilterDrawer}"
-									title="Open Filters"
-								>
-									<lightning-icon
-										icon-name="utility:filterList"
-										size="xx-small"
-									></lightning-icon>
-									<span>Filters</span>
-									<template if:true="{hasActiveFilters}">
-										<span class="filter-count">({activeFilterCount})</span>
-									</template>
-								</button>
-
-								<!-- Settings Button -->
-								<div class="settings-dropdown-container">
-									<button
-										class="action-btn"
-										onclick="{handleToggleSettingsMenu}"
-										title="Settings"
-										aria-expanded="{showSettingsMenu}"
-										aria-label="Settings menu"
-									>
-										<lightning-icon
-											icon-name="utility:settings"
-											size="xx-small"
-										></lightning-icon>
-										<span>Settings</span>
-									</button>
-
-									<!-- Settings Dropdown Menu -->
-									<template if:true="{showSettingsMenu}">
-										<div class="settings-dropdown-menu">
-											<div class="settings-menu-header">
-												<h3>Board Settings</h3>
-											</div>
-											<div class="settings-menu-content">
-												<button
-													class="settings-menu-item slds-button slds-button_neutral"
-													onclick="{handleRefreshColumns}"
-													title="Refresh board data"
-												>
-													<lightning-icon
-														icon-name="utility:refresh"
-														size="xx-small"
-													></lightning-icon>
-													<span>Refresh Board</span>
-												</button>
-												<button
-													class="settings-menu-item slds-button slds-button_neutral"
-													onclick="{handleToggleVirtualScroll}"
-													title="Toggle virtual scrolling"
-												>
-													<lightning-icon
-														icon-name="utility:scroll"
-														size="xx-small"
-													></lightning-icon>
-													<span>{virtualScrollLabel}</span>
-												</button>
-												<button
-													class="settings-menu-item slds-button slds-button_neutral"
-													onclick="{handleToggleColumnOrdering}"
-													title="Toggle custom column ordering"
-												>
-													<lightning-icon
-														icon-name="utility:sort"
-														size="xx-small"
-													></lightning-icon>
-													<span>Toggle Column Ordering</span>
-												</button>
-												<button
-													class="settings-menu-item slds-button slds-button_neutral"
-													onclick="{handleBulkActions}"
-													title="Bulk task operations"
-												>
-													<lightning-icon
-														icon-name="utility:multi_select_checkbox"
-														size="xx-small"
-													></lightning-icon>
-													<span>Bulk Actions</span>
-												</button>
-											</div>
-										</div>
-									</template>
-								</div>
-
-								<!-- New Task Button -->
-								<button
-									class="action-btn primary-btn slds-button slds-button_brand"
-									onclick="{handleOpenNewTaskDrawer}"
-									title="Create New Task"
-								>
-									<lightning-icon
-										icon-name="utility:add"
-										size="xx-small"
-									></lightning-icon>
-									<span>New Task</span>
-								</button>
-							</div>
-						</div>
+			<template if:true={isKanbanView}>
+				<!-- Board Header with Controls -->
+				<div class="board-header">
+					<div class="board-header-left">
+						<h1 class="board-title">Kanban Board</h1>
+						<span class="board-subtitle" if:true={hasActiveFilters}>
+							{activeFilterCount} active
+						</span>
 					</div>
-
-					<!-- Bulk Action Toolbar -->
-					<template if:true="{hasSelectedTasks}">
-						<div class="bulk-action-toolbar">
-							<div class="bulk-toolbar-left">
-								<span class="bulk-selection-count">{bulkActionLabel}</span>
-								<template if:true="{isBulkOperating}">
-									<lightning-spinner
-										alternative-text="Processing bulk operation"
-										size="small"
-										class="bulk-spinner"
-									></lightning-spinner>
-								</template>
-								<button
-									class="bulk-btn clear-btn"
-									onclick="{handleClearSelection}"
-									title="Clear selection"
-								>
-									<lightning-icon
-										icon-name="utility:clear"
-										size="xx-small"
-									></lightning-icon>
-									<span>Clear</span>
-								</button>
-								<button
-									class="bulk-btn select-all-btn"
-									onclick="{handleSelectAllTasks}"
-									title="Select all visible tasks"
-								>
-									<lightning-icon
-										icon-name="utility:check"
-										size="xx-small"
-									></lightning-icon>
-									<span>Select All</span>
-								</button>
-							</div>
-							<div class="bulk-toolbar-right">
-								<lightning-combobox
-									name="bulkStatus"
-									label="Change Status"
-									placeholder="Select Status"
-									options="{statusPicklistValues}"
-									onchange="{handleBulkStatusUpdate}"
-									class="bulk-combobox"
-									variant="label-hidden"
-								></lightning-combobox>
-								<lightning-combobox
-									name="bulkPriority"
-									label="Change Priority"
-									placeholder="Select Priority"
-									options="{priorityOptions}"
-									onchange="{handleBulkPriorityChange}"
-									class="bulk-combobox"
-									variant="label-hidden"
-								></lightning-combobox>
-								<lightning-combobox
-									name="bulkAssignment"
-									label="Assign To"
-									placeholder="Assign To"
-									options="{assignableUsersOptions}"
-									onchange="{handleBulkAssignment}"
-									class="bulk-combobox"
-									variant="label-hidden"
-								></lightning-combobox>
-								<lightning-combobox
-									name="bulkProject"
-									label="Assign to Project"
-									placeholder="Select Project"
-									options="{projectOptions}"
-									onchange="{handleBulkProjectAssign}"
-									class="bulk-combobox"
-									variant="label-hidden"
-								></lightning-combobox>
-								<button
-									class="bulk-btn delete-btn"
-									onclick="{handleBulkDelete}"
-									title="Delete selected tasks"
-									aria-label="Delete selected tasks"
-								>
-									<lightning-icon
-										icon-name="utility:delete"
-										size="xx-small"
-									></lightning-icon>
-									<span>Delete</span>
-								</button>
-							</div>
-						</div>
-					</template>
-
-					<!-- Quick Filters Bar (UX-006) -->
-					<div class="quick-filters-bar">
-						<div class="quick-filters-left">
-							<span class="quick-filters-label">Quick Filters:</span>
-							<template for:each="{quickFilterChips}" for:item="chip">
-								<button
-									key="{chip.key}"
-									class="{chip.chipClass}"
-									data-filter-key="{chip.key}"
-									onclick="{handleQuickFilterToggle}"
-									title="{chip.label}"
-								>
-									<lightning-icon
-										icon-name="{chip.icon}"
-										size="xx-small"
-									></lightning-icon>
-									<span>{chip.label}</span>
-								</button>
-							</template>
-						</div>
-						<template if:true="{hasActiveQuickFilters}">
-							<div class="quick-filters-right">
-								<span class="quick-filter-count"
-									>{activeQuickFilterCount} active</span
-								>
-								<button
-									class="quick-filter-clear"
-									onclick="{handleClearQuickFilters}"
-									title="Clear all quick filters"
-								>
-									<lightning-icon
-										icon-name="utility:clear"
-										size="xx-small"
-									></lightning-icon>
-									<span>Clear All</span>
-								</button>
-							</div>
-						</template>
-					</div>
-
-					<!-- Main Board Loading Spinner -->
-					<template if:true="{isLoading}">
-						<div class="board-loading-overlay">
-							<lightning-spinner
-								alternative-text="Loading kanban board"
-								size="large"
-								class="board-spinner"
-							></lightning-spinner>
-							<p class="loading-text">Loading your tasks...</p>
-						</div>
-					</template>
-
-					<!-- Kanban columns -->
-					<div class="kanban-columns">
-						<template
-							for:each="{teamColumns}"
-							for:item="column"
-							for:index="index"
+					<div class="board-header-right">
+						<button
+							class="board-action-btn"
+							onclick={handleRefreshBoard}
+							title="Refresh Board"
 						>
+							<lightning-icon
+								icon-name="utility:refresh"
+								size="small"
+							></lightning-icon>
+							<span>Refresh</span>
+						</button>
+						<button
+							class="board-action-btn"
+							onclick={toggleFilterDrawer}
+							title="Show Filters"
+						>
+							<lightning-icon
+								icon-name="utility:filterList"
+								size="small"
+							></lightning-icon>
+							<span>Filters</span>
+							<template if:true={hasActiveFilters}>
+								<span class="filter-badge">{activeFilterCount}</span>
+							</template>
+						</button>
+						<button
+							class="board-action-btn"
+							onclick={handleOpenTimeLogDrawer}
+							title="Log Time"
+						>
+							<lightning-icon
+								icon-name="utility:clock"
+								size="small"
+							></lightning-icon>
+							<span>Log Time</span>
+						</button>
+						<button
+							class="board-action-btn board-action-btn-primary"
+							onclick={handleOpenNewTaskDrawer}
+							title="Create New Task"
+						>
+							<lightning-icon
+								icon-name="utility:add"
+								size="small"
+							></lightning-icon>
+							<span>New Task</span>
+						</button>
+						<button
+							class="board-action-btn"
+							onclick={handleToggleBulkMode}
+							title="Toggle bulk selection mode"
+						>
+							<lightning-icon
+								icon-name="utility:multi_select_checkbox"
+								size="small"
+							></lightning-icon>
+							<span>{bulkModeLabel}</span>
+						</button>
+					</div>
+				</div>
+
+				<!-- Bulk Operations Toolbar -->
+				<template if:true={isBulkMode}>
+					<div class="bulk-toolbar">
+						<div class="bulk-toolbar-left">
+							<lightning-icon
+								icon-name="utility:multi_select_checkbox"
+								size="small"
+							></lightning-icon>
+							<span class="bulk-count">{bulkActionLabel}</span>
+						</div>
+						<div class="bulk-toolbar-right">
+							<button
+								class="bulk-action-btn"
+								onclick={handleBulkAssign}
+								disabled={noBulkSelection}
+								title="Assign selected tasks"
+							>
+								<lightning-icon
+									icon-name="utility:user"
+									size="xx-small"
+								></lightning-icon>
+								<span>Assign</span>
+							</button>
+							<button
+								class="bulk-action-btn"
+								onclick={handleBulkStatusChange}
+								disabled={noBulkSelection}
+								title="Change status of selected tasks"
+							>
+								<lightning-icon
+									icon-name="utility:stages"
+									size="xx-small"
+								></lightning-icon>
+								<span>Status</span>
+							</button>
+							<button
+								class="bulk-action-btn"
+								onclick={handleBulkPriorityChange}
+								disabled={noBulkSelection}
+								title="Change priority of selected tasks"
+							>
+								<lightning-icon
+									icon-name="utility:priority"
+									size="xx-small"
+								></lightning-icon>
+								<span>Priority</span>
+							</button>
+							<button
+								class="bulk-action-btn bulk-action-btn-danger"
+								onclick={handleBulkDelete}
+								disabled={noBulkSelection}
+								title="Delete selected tasks"
+							>
+								<lightning-icon
+									icon-name="utility:delete"
+									size="xx-small"
+								></lightning-icon>
+								<span>Delete</span>
+							</button>
+						</div>
+					</div>
+				</template>
+
+				<div class="kanban-board-container">
+					<div class="kanban-columns">
+						<template for:each={columns} for:item="column">
 							<div
-								key="{column.id}"
-								class="{column.combinedClasses}"
-								data-column-id="{column.id}"
-								data-column-index="{index}"
-								data-status="{column.statusValue}"
-								data-status-label="{column.title}"
-								data-collapsed="{column.isCollapsed}"
-								onclick="{handleColumnClick}"
+								key={column.id}
+								class="kanban-column"
+								data-column-id={column.id}
+								data-collapsed={column.isCollapsed}
+								data-status={column.statusValue}
+								onclick={handleColumnClick}
+								title={column.tooltipTitle}
 							>
 								<div class="column-header">
-									<h3 class="column-title">
-										{column.title}
-										<span class="task-count">({column.cardCount})</span>
-									</h3>
+									<div class="column-info">
+										<div class="column-title-row">
+											<h3
+												class="column-title clickable-title"
+												onclick={handleColumnTitleClick}
+												data-column-id={column.id}
+												data-status={column.statusValue}
+												title="Click to sort tasks alphabetically"
+											>
+												<span class="title-full">{column.title}</span>
+												<span class="title-short">{column.shortTitle}</span>
+												<template if:true={column.isSorted}>
+													<lightning-icon
+														icon-name="utility:arrowup"
+														size="xx-small"
+														class="sort-indicator"
+													></lightning-icon>
+												</template>
+											</h3>
+											<span class="column-task-count"
+												>({column.cardCount})</span
+											>
+											<template if:true={column.displayOrder}>
+												<span class="column-order-indicator"
+													>#{column.displayOrder}</span
+												>
+											</template>
+										</div>
+									</div>
 									<div class="column-actions">
 										<button
-											class="column-action-btn toggle-btn"
-											onclick="{handleColumnToggle}"
-											data-column-id="{column.id}"
-											title="{column.toggleTitle}"
-											aria-expanded="{column.isExpanded}"
+											class="column-action-btn collapse-btn"
+											onclick={handleColumnCollapseToggle}
+											data-column-id={column.id}
+											title="Toggle column visibility"
+											aria-expanded={column.ariaExpanded}
 										>
-											<template if:true="{column.isCollapsed}">
+											<template if:true={column.isCollapsed}>
 												<lightning-icon
 													icon-name="utility:chevronright"
 													size="xx-small"
@@ -394,7 +301,7 @@
 												></lightning-icon>
 												<span class="sr-only">Expand {column.title}</span>
 											</template>
-											<template if:false="{column.isCollapsed}">
+											<template if:false={column.isCollapsed}>
 												<lightning-icon
 													icon-name="utility:chevrondown"
 													size="xx-small"
@@ -405,9 +312,9 @@
 										</button>
 										<button
 											class="column-action-btn add-task-btn"
-											onclick="{handleNewTaskInColumn}"
-											data-column-id="{column.id}"
-											data-column-status="{column.statusValue}"
+											onclick={handleNewTaskInColumn}
+											data-column-id={column.id}
+											data-column-status={column.statusValue}
 											title="Add task to {column.title}"
 										>
 											<lightning-icon
@@ -420,72 +327,47 @@
 									</div>
 								</div>
 
-								<template if:false="{column.isCollapsed}">
+								<template if:false={column.isCollapsed}>
 									<div
 										class="column-content"
-										data-column-id="{column.id}"
-										ondragover="{handleDragOver}"
-										ondrop="{handleDrop}"
-										ondragleave="{handleDragLeave}"
+										data-column-id={column.id}
+										ondragover={handleDragOver}
+										ondrop={handleDrop}
+										ondragleave={handleDragLeave}
 									>
-										<!-- PERF-001: top spacer for virtual scrolling -->
-										<div class="vs-spacer" style="{column.vsTopStyle}"></div>
-										<template for:each="{column.renderedCards}" for:item="card">
-											<div
-												key="{card.Id}"
-												class="card-wrapper"
-												data-task-id="{card.Id}"
-											>
-												<template if:true="{isBulkMode}">
-													<div class="card-checkbox-wrapper">
-														<lightning-input
-															type="checkbox"
-															data-task-id="{card.Id}"
-															onclick="{handleTaskSelect}"
-															variant="label-hidden"
-															label="Select task"
-														></lightning-input>
-													</div>
-												</template>
-												<c-kanban-card
-													issue="{card}"
-													is-dark-mode="{isDarkMode}"
-													data-id="{card.Id}"
-													draggable="true"
-													oncarddragstart="{handleCardDragStart}"
-													onclick="{handleCardClick}"
-													ontimelogrequest="{handleTimeLogRequest}"
-												></c-kanban-card>
-											</div>
+										<template for:each={column.cards} for:item="card">
+											<c-kanban-card
+												key={card.Id}
+												issue={card}
+												is-dark-mode={isDarkMode}
+												is-bulk-mode={isBulkMode}
+												is-selected={card.isSelected}
+												data-id={card.Id}
+												draggable="true"
+												oncarddragstart={handleCardDragStart}
+												onclick={handleCardClick}
+												ontimelogrequest={handleTimeLogRequest}
+												onselectionchange={handleTaskSelectionChange}
+											></c-kanban-card>
 										</template>
-										<!-- PERF-001: bottom spacer for virtual scrolling -->
-										<div class="vs-spacer" style="{column.vsBottomStyle}"></div>
-										<template if:false="{column.hasCards}">
+										<template if:false={column.hasCards}>
 											<div class="empty-column">
-												<lightning-icon
-													icon-name="utility:inbox"
-													size="medium"
-													class="empty-icon"
-												></lightning-icon>
-												<p class="empty-title">No tasks in {column.title}</p>
-												<p class="empty-description">
-													Drag tasks here or create a new one
+												<p>
+													Drop tasks here or
+													<lightning-button
+														variant="base"
+														label="add a new task"
+														onclick={handleNewTaskInColumn}
+														data-column-id={column.id}
+														data-column-status={column.statusValue}
+													></lightning-button>
 												</p>
-												<lightning-button
-													variant="brand"
-													label="Add Task"
-													icon-name="utility:add"
-													onclick="{handleNewTaskInColumn}"
-													data-column-id="{column.id}"
-													data-column-status="{column.statusValue}"
-													class="empty-action-btn"
-												></lightning-button>
 											</div>
 										</template>
 									</div>
 								</template>
-								<template if:true="{column.isCollapsed}">
-									<div class="collapsed-center-label" title="{column.title}">
+								<template if:true={column.isCollapsed}>
+									<div class="collapsed-center-label" title={column.title}>
 										{column.title}
 									</div>
 								</template>
@@ -494,36 +376,35 @@
 					</div>
 				</div>
 			</template>
-			<!-- End Kanban Board View -->
+			<!-- End Kanban View -->
 		</div>
 
 		<!-- Unified Drawer - handles Filters, New Task, and Task Details -->
-		<template if:true="{showUnifiedDrawer}">
+		<template if:true={showUnifiedDrawer}>
 			<div
 				class="unified-drawer-backdrop"
-				onclick="{handleDrawerBackdropClick}"
+				onclick={handleDrawerBackdropClick}
 			></div>
 			<div class="unified-drawer-container">
 				<div
 					class="unified-drawer"
 					role="dialog"
 					aria-modal="true"
-					aria-label="{drawerTitle}"
+					aria-label={drawerTitle}
 				>
 					<!-- Drawer Header -->
 					<div class="unified-drawer-header">
 						<div class="unified-drawer-title">
 							<lightning-icon
-								icon-name="{drawerIcon}"
+								icon-name={drawerIcon}
 								size="small"
 							></lightning-icon>
 							<h2>{drawerTitle}</h2>
 						</div>
 						<button
 							class="unified-drawer-close"
-							onclick="{handleCloseDrawer}"
-							title="{closeButtonTitle}"
-							aria-label="Close drawer"
+							onclick={handleCloseDrawer}
+							title={closeButtonTitle}
 						>
 							<lightning-icon
 								icon-name="utility:close"
@@ -535,7 +416,7 @@
 					<!-- Drawer Content -->
 					<div class="unified-drawer-content">
 						<!-- FILTER CONTENT -->
-						<template if:true="{showFilterDrawer}">
+						<template if:true={showFilterDrawer}>
 							<div class="filter-section">
 								<div class="filter-section-header">
 									<lightning-icon
@@ -545,15 +426,15 @@
 									All Filters
 								</div>
 								<div class="filter-section-content">
-									<template if:true="{hasTeamOptions}">
+									<template if:true={hasTeamOptions}>
 										<div class="filter-form-group">
 											<lightning-combobox
 												name="team"
 												label="Team"
-												value="{selectedTeamId}"
+												value={selectedTeamId}
 												placeholder="Select Team"
-												options="{teamOptions}"
-												onchange="{handleFilterChange}"
+												options={teamOptions}
+												onchange={handleFilterChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -562,10 +443,10 @@
 										<lightning-combobox
 											name="assignedTo"
 											label="Assigned To"
-											value="{selectedAssignedToId}"
+											value={selectedAssignedToId}
 											placeholder="Select User"
-											options="{assignableUsersOptions}"
-											onchange="{handleFilterChange}"
+											options={assignableUsersOptions}
+											onchange={handleFilterChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -573,10 +454,10 @@
 										<lightning-combobox
 											name="project"
 											label="Project"
-											value="{selectedProjectId}"
+											value={selectedProjectId}
 											placeholder="Select Project"
-											options="{projectOptions}"
-											onchange="{handleFilterChange}"
+											options={projectOptions}
+											onchange={handleFilterChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -585,8 +466,8 @@
 											type="date"
 											name="startDate"
 											label="Start Date"
-											value="{startDate}"
-											onchange="{handleFilterChange}"
+											value={startDate}
+											onchange={handleFilterChange}
 											class="filter-input"
 										></lightning-input>
 									</div>
@@ -595,78 +476,50 @@
 											type="date"
 											name="endDate"
 											label="End Date"
-											value="{endDate}"
-											onchange="{handleFilterChange}"
+											value={endDate}
+											onchange={handleFilterChange}
 											class="filter-input"
 										></lightning-input>
 									</div>
-									<!-- Column visibility control: preserve board order, persist per-user -->
-									<div class="filter-form-group full-width">
-										<lightning-dual-listbox
-											name="columns"
-											label="Columns to Show"
-											source-label="Hidden"
-											selected-label="Visible"
-											options="{columnVisibilityOptions}"
-											value="{selectedColumnIds}"
-											onchange="{handleColumnVisibilityChange}"
-											disable-reordering="true"
-										></lightning-dual-listbox>
+									<div class="filter-form-group">
+										<lightning-combobox
+											name="category"
+											label="Task Category"
+											value={selectedCategoryId}
+											placeholder="Select Category"
+											options={categoryOptions}
+											onchange={handleFilterChange}
+											class="filter-select"
+										></lightning-combobox>
 									</div>
-									<div class="filter-form-group full-width">
-										<div class="filter-checkbox-group">
-											<template
-												for:each="{statusFilterOptions}"
-												for:item="statusOption"
-											>
-												<div
-													key="{statusOption.value}"
-													class="filter-checkbox-item"
-												>
-													<lightning-input
-														type="checkbox"
-														name="status"
-														label="{statusOption.label}"
-														value="{statusOption.value}"
-														checked="{statusOption.checked}"
-														data-filter-type="status"
-														data-filter-value="{statusOption.value}"
-														onchange="{handleFilterCheckboxChange}"
-													></lightning-input>
-												</div>
-											</template>
-										</div>
+									<div class="filter-form-group">
+										<lightning-combobox
+											name="status"
+											label="Status"
+											value={selectedStatusId}
+											placeholder="Select Status"
+											options={statusOptions}
+											onchange={handleFilterChange}
+											class="filter-select"
+										></lightning-combobox>
 									</div>
-									<div class="filter-form-group full-width">
-										<div class="filter-checkbox-group">
-											<template
-												for:each="{priorityFilterOptions}"
-												for:item="priorityOption"
-											>
-												<div
-													key="{priorityOption.value}"
-													class="filter-checkbox-item"
-												>
-													<lightning-input
-														type="checkbox"
-														name="priority"
-														label="{priorityOption.label}"
-														value="{priorityOption.value}"
-														checked="{priorityOption.checked}"
-														data-filter-type="priority"
-														data-filter-value="{priorityOption.value}"
-														onchange="{handleFilterCheckboxChange}"
-													></lightning-input>
-												</div>
-											</template>
-										</div>
+									<div class="filter-form-group">
+										<lightning-combobox
+											name="priority"
+											label="Priority"
+											value={selectedPriorityId}
+											placeholder="Select Priority"
+											options={priorityOptions}
+											onchange={handleFilterChange}
+											class="filter-select"
+										></lightning-combobox>
 									</div>
 								</div>
 							</div>
 						</template>
 
 						<!-- NEW TASK CONTENT -->
-						<template if:true="{showNewTaskDrawer}">
+						<template if:true={showNewTaskDrawer}>
 							<div class="filter-section">
 								<div class="filter-section-header">
 									<lightning-icon
@@ -676,15 +529,15 @@
 									Details
 								</div>
 								<div class="filter-section-content">
-									<template if:true="{hasTeamOptions}">
+									<template if:true={hasTeamOptions}>
 										<div class="filter-form-group">
 											<lightning-combobox
 												name="TLG_Team__c"
 												label="Team"
-												value="{newTaskData.TLG_Team__c}"
+												value={newTaskData.TLG_Team__c}
 												placeholder="Select Team"
-												options="{teamOptions}"
-												onchange="{handleNewTaskFieldChange}"
+												options={teamOptions}
+												onchange={handleNewTaskFieldChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -693,10 +546,10 @@
 										<lightning-combobox
 											name="TLG_Status__c"
 											label="Status"
-											value="{newTaskData.TLG_Status__c}"
-											options="{newTaskStatusOptions}"
-											onchange="{handleNewTaskFieldChange}"
-											onblur="{handleNewFieldBlur}"
+											value={newTaskData.TLG_Status__c}
+											options={newTaskStatusOptions}
+											onchange={handleNewTaskFieldChange}
+											onblur={handleNewFieldBlur}
 											required
 											class="filter-select"
 										></lightning-combobox>
@@ -706,9 +559,9 @@
 											type="text"
 											name="Name"
 											label="Subject"
-											value="{newTaskData.Name}"
-											onchange="{handleNewTaskFieldChange}"
-											onblur="{handleNewFieldBlur}"
+											value={newTaskData.Name}
+											onchange={handleNewTaskFieldChange}
+											onblur={handleNewFieldBlur}
 											required
 											class="filter-input"
 										></lightning-input>
@@ -717,9 +570,9 @@
 										<lightning-combobox
 											name="TLG_Priority__c"
 											label="Priority"
-											value="{newTaskData.TLG_Priority__c}"
-											options="{priorityOptions}"
-											onchange="{handleNewTaskFieldChange}"
+											value={newTaskData.TLG_Priority__c}
+											options={priorityOptions}
+											onchange={handleNewTaskFieldChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -727,9 +580,9 @@
 										<lightning-combobox
 											name="TLG_Category__c"
 											label="Task Category"
-											value="{newTaskData.TLG_Category__c}"
-											options="{categoryOptions}"
-											onchange="{handleNewTaskFieldChange}"
+											value={newTaskData.TLG_Category__c}
+											options={categoryOptions}
+											onchange={handleNewTaskFieldChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -738,8 +591,8 @@
 											type="date"
 											name="TLG_Due_Date__c"
 											label="Due Date"
-											value="{newTaskData.TLG_Due_Date__c}"
-											onchange="{handleNewTaskFieldChange}"
+											value={newTaskData.TLG_Due_Date__c}
+											onchange={handleNewTaskFieldChange}
 											class="filter-input"
 										></lightning-input>
 									</div>
@@ -748,10 +601,10 @@
 											type="number"
 											name="Total_Estimated_Time__c"
 											label="Estimated Hours"
-											value="{newTaskData.Total_Estimated_Time__c}"
+											value={newTaskData.Total_Estimated_Time__c}
 											min="0"
 											step="1"
-											onchange="{handleNewTaskFieldChange}"
+											onchange={handleNewTaskFieldChange}
 											class="filter-input"
 										></lightning-input>
 									</div>
@@ -759,9 +612,9 @@
 										<lightning-combobox
 											name="Progress__c"
 											label="Percent Complete"
-											value="{newTaskData.Progress__c}"
-											options="{progressPercentOptions}"
-											onchange="{handleNewTaskFieldChange}"
+											value={newTaskData.Progress__c}
+											options={progressPercentOptions}
+											onchange={handleNewTaskFieldChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -769,10 +622,10 @@
 										<lightning-combobox
 											name="TLG_Assigned_To__c"
 											label="Assigned To"
-											value="{newTaskData.TLG_Assigned_To__c}"
+											value={newTaskData.TLG_Assigned_To__c}
 											placeholder="Select User"
-											options="{assignableUsersOptions}"
-											onchange="{handleNewTaskFieldChange}"
+											options={assignableUsersOptions}
+											onchange={handleNewTaskFieldChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -780,10 +633,10 @@
 										<lightning-combobox
 											name="TLG_Opportunity__c"
 											label="Project"
-											value="{newTaskData.TLG_Opportunity__c}"
+											value={newTaskData.TLG_Opportunity__c}
 											placeholder="Select Project"
-											options="{projectOptions}"
-											onchange="{handleNewTaskFieldChange}"
+											options={projectOptions}
+											onchange={handleNewTaskFieldChange}
 											class="filter-select"
 										></lightning-combobox>
 									</div>
@@ -793,29 +646,29 @@
 											type="search"
 											name="caseSearchNew"
 											label="Target (Case)"
-											value="{newCaseSearchText}"
-											oninput="{handleCaseSearchInputNew}"
+											value={newCaseSearchText}
+											oninput={handleCaseSearchInputNew}
 											autocomplete="off"
 											class="filter-input"
 										></lightning-input>
-										<template if:true="{showCaseResultsNew}">
+										<template if:true={showCaseResultsNew}>
 											<div
 												class="lookup-dropdown"
 												role="listbox"
-												aria-busy="{isSearchingCaseNew}"
+												aria-busy={isSearchingCaseNew}
 											>
-												<template if:true="{isSearchingCaseNew}">
+												<template if:true={isSearchingCaseNew}>
 													<div class="lookup-item" role="option">
 														Searching…
 													</div>
 												</template>
-												<template for:each="{caseResultsNew}" for:item="opt">
+												<template for:each={caseResultsNew} for:item="opt">
 													<div
-														key="{opt.value}"
+														key={opt.value}
 														class="lookup-item"
-														data-id="{opt.value}"
+														data-id={opt.value}
 														role="option"
-														onclick="{handleSelectCaseNew}"
+														onclick={handleSelectCaseNew}
 													>
 														<lightning-icon
 															icon-name="standard:case"
@@ -827,10 +680,10 @@
 												</template>
 											</div>
 										</template>
-										<template if:true="{newTaskData.TLG_Case__c}">
+										<template if:true={newTaskData.TLG_Case__c}>
 											<button
 												class="clear-btn"
-												onclick="{handleClearCaseNew}"
+												onclick={handleClearCaseNew}
 												type="button"
 											>
 												Clear
@@ -843,32 +696,32 @@
 											type="search"
 											name="parentSearchNew"
 											label="Parent Task"
-											value="{newParentSearchText}"
-											oninput="{handleParentSearchInputNew}"
+											value={newParentSearchText}
+											oninput={handleParentSearchInputNew}
 											autocomplete="off"
 											class="filter-input"
 										></lightning-input>
-										<template if:true="{showParentResultsNew}">
+										<template if:true={showParentResultsNew}>
 											<div
 												class="lookup-dropdown"
 												role="listbox"
-												aria-busy="{isSearchingParentNew}"
+												aria-busy={isSearchingParentNew}
 											>
-												<template if:true="{isSearchingParentNew}">
+												<template if:true={isSearchingParentNew}>
 													<div class="lookup-item" role="option">
 														Searching…
 													</div>
 												</template>
 												<template
-													for:each="{parentTaskResultsNew}"
+													for:each={parentTaskResultsNew}
 													for:item="opt"
 												>
 													<div
-														key="{opt.value}"
+														key={opt.value}
 														class="lookup-item"
-														data-id="{opt.value}"
+														data-id={opt.value}
 														role="option"
-														onclick="{handleSelectParentNew}"
+														onclick={handleSelectParentNew}
 													>
 														<lightning-icon
 															icon-name="standard:task"
@@ -880,10 +733,10 @@
 												</template>
 											</div>
 										</template>
-										<template if:true="{newTaskData.Parent__c}">
+										<template if:true={newTaskData.Parent__c}>
 											<button
 												class="clear-btn"
-												onclick="{handleClearParentNew}"
+												onclick={handleClearParentNew}
 												type="button"
 											>
 												Clear
@@ -894,9 +747,9 @@
 										<lightning-input-rich-text
 											name="TLG_Shared_Notes__c"
 											label="Shared Notes"
-											value="{newTaskData.TLG_Shared_Notes__c}"
+											value={newTaskData.TLG_Shared_Notes__c}
 											formats="font bold italic underline strike list indent outdent align link image table header"
-											onchange="{handleNewTaskFieldChange}"
+											onchange={handleNewTaskFieldChange}
 											style="min-height: 240px; max-height: 480px"
 											class="filter-input"
 										></lightning-input-rich-text>
@@ -909,51 +762,26 @@
 						</template>
 
 						<!-- TASK DETAILS CONTENT (always editable) -->
-						<template if:true="{showTaskDrawer}">
-							<template if:true="{selectedTaskDetails}">
+						<template if:true={showTaskDrawer}>
+							<template if:true={selectedTaskDetails}>
 								<div class="filter-section">
 									<div class="filter-section-header">
-										<div class="header-left">
-											<lightning-icon
-												icon-name="utility:task"
-												size="x-small"
-											></lightning-icon>
-											Details
-										</div>
-										<button
-											class="header-toggle-btn"
-											onclick="{handleToggleTimeLog}"
-											title="Toggle Time Logging"
-											aria-pressed="{showTimeLogSection}"
-										>
-											<lightning-icon
-												icon-name="utility:clock"
-												size="x-small"
-											></lightning-icon>
-											<span>Log Time</span>
-										</button>
+										<lightning-icon
+											icon-name="utility:task"
+											size="x-small"
+										></lightning-icon>
+										Details
 									</div>
-
-									<!-- Task Timer (Full Display Mode) -->
-									<div class="task-timer-container">
-										<c-task-timer
-											task-id="{selectedTaskId}"
-											task-name="{editTaskData.Name}"
-											onlogtime="{handleTimerLogTime}"
-										></c-task-timer
-										>`n`t`t`t`t`t`t`t
-									</div>
-
 									<div class="filter-section-content">
-										<template if:true="{hasTeamOptions}">
+										<template if:true={hasTeamOptions}>
 											<div class="filter-form-group">
 												<lightning-combobox
 													name="TLG_Team__c"
 													label="Team"
-													value="{editTaskData.TLG_Team__c}"
+													value={editTaskData.TLG_Team__c}
 													placeholder="Select Team"
-													options="{teamOptions}"
-													onchange="{handleEditTaskFieldChange}"
+													options={teamOptions}
+													onchange={handleEditTaskFieldChange}
 													class="filter-select"
 												></lightning-combobox>
 											</div>
@@ -962,10 +790,10 @@
 											<lightning-combobox
 												name="TLG_Status__c"
 												label="Status"
-												value="{editTaskData.TLG_Status__c}"
-												options="{editTaskStatusOptions}"
-												onchange="{handleEditTaskFieldChange}"
-												onblur="{handleEditFieldBlur}"
+												value={editTaskData.TLG_Status__c}
+												options={editTaskStatusOptions}
+												onchange={handleEditTaskFieldChange}
+												onblur={handleEditFieldBlur}
 												required
 												class="filter-select"
 											></lightning-combobox>
@@ -975,9 +803,9 @@
 												type="text"
 												name="Name"
 												label="Subject"
-												value="{editTaskData.Name}"
-												onchange="{handleEditTaskFieldChange}"
-												onblur="{handleEditFieldBlur}"
+												value={editTaskData.Name}
+												onchange={handleEditTaskFieldChange}
+												onblur={handleEditFieldBlur}
 												required
 												class="filter-input"
 											></lightning-input>
@@ -986,9 +814,9 @@
 											<lightning-combobox
 												name="TLG_Priority__c"
 												label="Priority"
-												value="{editTaskData.TLG_Priority__c}"
-												options="{priorityOptions}"
-												onchange="{handleEditTaskFieldChange}"
+												value={editTaskData.TLG_Priority__c}
+												options={priorityOptions}
+												onchange={handleEditTaskFieldChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -996,9 +824,9 @@
 											<lightning-combobox
 												name="TLG_Category__c"
 												label="Task Category"
-												value="{editTaskData.TLG_Category__c}"
-												options="{categoryOptions}"
-												onchange="{handleEditTaskFieldChange}"
+												value={editTaskData.TLG_Category__c}
+												options={categoryOptions}
+												onchange={handleEditTaskFieldChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -1007,8 +835,8 @@
 												type="date"
 												name="TLG_Due_Date__c"
 												label="Due Date"
-												value="{editTaskData.TLG_Due_Date__c}"
-												onchange="{handleEditTaskFieldChange}"
+												value={editTaskData.TLG_Due_Date__c}
+												onchange={handleEditTaskFieldChange}
 												class="filter-input"
 											></lightning-input>
 										</div>
@@ -1017,10 +845,10 @@
 												type="number"
 												name="Total_Estimated_Time__c"
 												label="Estimated Hours"
-												value="{editTaskData.Total_Estimated_Time__c}"
+												value={editTaskData.Total_Estimated_Time__c}
 												min="0"
 												step="1"
-												onchange="{handleEditTaskFieldChange}"
+												onchange={handleEditTaskFieldChange}
 												class="filter-input"
 											></lightning-input>
 										</div>
@@ -1028,9 +856,9 @@
 											<lightning-combobox
 												name="Progress__c"
 												label="Percent Complete"
-												value="{editTaskData.Progress__c}"
-												options="{progressPercentOptions}"
-												onchange="{handleEditTaskFieldChange}"
+												value={editTaskData.Progress__c}
+												options={progressPercentOptions}
+												onchange={handleEditTaskFieldChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -1038,10 +866,10 @@
 											<lightning-combobox
 												name="TLG_Assigned_To__c"
 												label="Assigned To"
-												value="{editTaskData.TLG_Assigned_To__c}"
+												value={editTaskData.TLG_Assigned_To__c}
 												placeholder="Select User"
-												options="{assignableUsersOptions}"
-												onchange="{handleEditTaskFieldChange}"
+												options={assignableUsersOptions}
+												onchange={handleEditTaskFieldChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -1049,10 +877,10 @@
 											<lightning-combobox
 												name="TLG_Opportunity__c"
 												label="Project"
-												value="{editTaskData.TLG_Opportunity__c}"
+												value={editTaskData.TLG_Opportunity__c}
 												placeholder="Select Project"
-												options="{projectOptions}"
-												onchange="{handleEditTaskFieldChange}"
+												options={projectOptions}
+												onchange={handleEditTaskFieldChange}
 												class="filter-select"
 											></lightning-combobox>
 										</div>
@@ -1062,30 +890,30 @@
 												type="search"
 												name="caseSearchEdit"
 												label="Target (Case)"
-												value="{editCaseSearchText}"
-												oninput="{handleCaseSearchInputEdit}"
+												value={editCaseSearchText}
+												oninput={handleCaseSearchInputEdit}
 												autocomplete="off"
 												class="filter-input"
-												disabled="{isCaseLockedEdit}"
+												disabled={isCaseLockedEdit}
 											></lightning-input>
-											<template if:true="{showCaseResultsEdit}">
+											<template if:true={showCaseResultsEdit}>
 												<div
 													class="lookup-dropdown"
 													role="listbox"
-													aria-busy="{isSearchingCaseEdit}"
+													aria-busy={isSearchingCaseEdit}
 												>
-													<template if:true="{isSearchingCaseEdit}">
+													<template if:true={isSearchingCaseEdit}>
 														<div class="lookup-item" role="option">
 															Searching…
 														</div>
 													</template>
-													<template for:each="{caseResultsEdit}" for:item="opt">
+													<template for:each={caseResultsEdit} for:item="opt">
 														<div
-															key="{opt.value}"
+															key={opt.value}
 															class="lookup-item"
-															data-id="{opt.value}"
+															data-id={opt.value}
 															role="option"
-															onclick="{handleSelectCaseEdit}"
+															onclick={handleSelectCaseEdit}
 														>
 															<lightning-icon
 																icon-name="standard:case"
@@ -1105,33 +933,33 @@
 												type="search"
 												name="parentSearchEdit"
 												label="Parent Task"
-												value="{editParentSearchText}"
-												oninput="{handleParentSearchInputEdit}"
-												onblur="{handleEditFieldBlur}"
+												value={editParentSearchText}
+												oninput={handleParentSearchInputEdit}
+												onblur={handleEditFieldBlur}
 												autocomplete="off"
 												class="filter-input"
 											></lightning-input>
-											<template if:true="{showParentResultsEdit}">
+											<template if:true={showParentResultsEdit}>
 												<div
 													class="lookup-dropdown"
 													role="listbox"
-													aria-busy="{isSearchingParentEdit}"
+													aria-busy={isSearchingParentEdit}
 												>
-													<template if:true="{isSearchingParentEdit}">
+													<template if:true={isSearchingParentEdit}>
 														<div class="lookup-item" role="option">
 															Searching…
 														</div>
 													</template>
 													<template
-														for:each="{parentTaskResultsEdit}"
+														for:each={parentTaskResultsEdit}
 														for:item="opt"
 													>
 														<div
-															key="{opt.value}"
+															key={opt.value}
 															class="lookup-item"
-															data-id="{opt.value}"
+															data-id={opt.value}
 															role="option"
-															onclick="{handleSelectParentEdit}"
+															onclick={handleSelectParentEdit}
 														>
 															<lightning-icon
 																icon-name="standard:task"
@@ -1143,10 +971,10 @@
 													</template>
 												</div>
 											</template>
-											<template if:true="{editTaskData.Parent__c}">
+											<template if:true={editTaskData.Parent__c}>
 												<button
 													class="clear-btn"
-													onclick="{handleClearParentEdit}"
+													onclick={handleClearParentEdit}
 													type="button"
 												>
 													Clear
@@ -1157,147 +985,216 @@
 											<lightning-input-rich-text
 												name="TLG_Shared_Notes__c"
 												label="Shared Notes"
-												value="{editTaskData.TLG_Shared_Notes__c}"
+												value={editTaskData.TLG_Shared_Notes__c}
 												formats="font bold italic underline strike list indent outdent align link image table header"
-												onchange="{handleEditTaskFieldChange}"
+												onchange={handleEditTaskFieldChange}
 												style="min-height: 240px; max-height: 480px"
 												class="filter-input"
 											></lightning-input-rich-text>
 											<lightning-file-upload
 												label="Upload Images"
 												name="notesImageUpload"
-												record-id="{selectedTaskId}"
+												record-id={selectedTaskId}
 												accept=".png,.jpg,.jpeg,.gif"
-												onuploadfinished="{handleNotesImageUploadFinished}"
+												onuploadfinished={handleNotesImageUploadFinished}
 											>
 											</lightning-file-upload>
 										</div>
 
 										<!-- Logged Time Section -->
-										<template if:true="{showTimeLogSection}">
-											<div
-												class="filter-section-header"
-												style="margin-top: 1rem"
+										<div class="filter-section-header" style="margin-top: 1rem">
+											<lightning-icon
+												icon-name="utility:clock"
+												size="x-small"
+											></lightning-icon>
+											Logged Time
+										</div>
+										<div class="filter-form-group grid-2col">
+											<lightning-input
+												type="number"
+												name="Completion__c"
+												label="Completion (%)"
+												min="0"
+												max="100"
+												value={logTimeData.Completion__c}
+												onchange={handleLogFieldChange}
+												message-when-range-overflow="Max 100"
+												message-when-range-underflow="Min 0"
+												class="filter-input"
+											></lightning-input>
+											<lightning-input
+												type="date"
+												name="TLG_Date_Record__c"
+												label="Date"
+												value={logTimeData.TLG_Date_Record__c}
+												onchange={handleLogFieldChange}
+												class="filter-input"
+											></lightning-input>
+										</div>
+										<div class="filter-form-group">
+											<label
+												class="slds-form-element__label"
+												for="timeSpentField"
+												>Time Spent (h.mm)</label
 											>
-												<lightning-icon
-													icon-name="utility:clock"
-													size="x-small"
-												></lightning-icon>
-												Logged Time
-												<template if:true="{isRefreshingTimeAggregates}">
-													<lightning-spinner
-														alternative-text="Refreshing time data"
-														size="xx-small"
-														class="inline-spinner"
-													></lightning-spinner>
-												</template>
-											</div>
-											<div class="filter-form-group grid-2col">
-												<lightning-input
-													type="number"
-													name="Completion__c"
-													label="Completion (%)"
-													min="0"
-													max="100"
-													value="{logTimeData.Completion__c}"
-													onchange="{handleLogFieldChange}"
-													message-when-range-overflow="Max 100"
-													message-when-range-underflow="Min 0"
-													class="filter-input"
-												></lightning-input>
-												<lightning-input
-													type="date"
-													name="TLG_Date_Record__c"
-													label="Date"
-													value="{logTimeData.TLG_Date_Record__c}"
-													onchange="{handleLogFieldChange}"
-													class="filter-input"
-												></lightning-input>
-											</div>
-											<div class="filter-form-group">
-												<label
-													class="slds-form-element__label"
-													for="timeSpentField"
-													>Time Spent (h.mm)</label
-												>
-												<div class="time-stepper">
-													<button
-														class="time-btn"
-														data-dir="minus"
-														onclick="{handleTimeStep}"
-														type="button"
-														aria-label="Minus 15 minutes"
-													>
-														<lightning-icon
-															icon-name="utility:dash"
-															size="xx-small"
-														></lightning-icon>
-													</button>
-													<lightning-input
-														id="timeSpentField"
-														type="text"
-														name="TLG_Time_Spent__c"
-														value="{logTimeData.TLG_Time_Spent__c}"
-														onchange="{handleTimeSpentChange}"
-														class="filter-input"
-														style="max-width: 120px"
-													></lightning-input>
-													<button
-														class="time-btn"
-														data-dir="plus"
-														onclick="{handleTimeStep}"
-														type="button"
-														aria-label="Plus 15 minutes"
-													>
-														<lightning-icon
-															icon-name="utility:add"
-															size="xx-small"
-														></lightning-icon>
-													</button>
-												</div>
-											</div>
-											<div class="filter-form-group full-width">
-												<lightning-input
-													type="text"
-													name="TLG_Description__c"
-													label="Work Description"
-													value="{logTimeData.TLG_Description__c}"
-													onchange="{handleLogFieldChange}"
-													class="filter-input"
-												></lightning-input>
-											</div>
-											<div class="filter-form-group grid-2col">
-												<lightning-input
-													type="text"
-													label="Estimated Hours"
-													value="{selectedTaskDetails.estimatedHours}"
-													disabled
-													class="filter-input"
-												></lightning-input>
-												<lightning-input
-													type="text"
-													label="Remaining (h.mm)"
-													value="{remainingEstimateDisplay}"
-													formatter="number"
-													disabled
-													class="filter-input"
-													data-is-remaining
-												></lightning-input>
-											</div>
-											<div class="filter-form-group">
+											<div class="time-stepper">
 												<button
-													class="filter-btn filter-btn-primary"
-													onclick="{handleSubmitLogTime}"
+													class="time-btn"
+													data-dir="minus"
+													onclick={handleTimeStep}
+													type="button"
+													aria-label="Minus 15 minutes"
 												>
 													<lightning-icon
-														icon-name="utility:check"
+														icon-name="utility:dash"
 														size="xx-small"
 													></lightning-icon>
-													Log Time
+												</button>
+												<lightning-input
+													id="timeSpentField"
+													type="text"
+													name="TLG_Time_Spent__c"
+													value={logTimeData.TLG_Time_Spent__c}
+													onchange={handleTimeSpentChange}
+													class="filter-input"
+													style="max-width: 120px"
+												></lightning-input>
+												<button
+													class="time-btn"
+													data-dir="plus"
+													onclick={handleTimeStep}
+													type="button"
+													aria-label="Plus 15 minutes"
+												>
+													<lightning-icon
+														icon-name="utility:add"
+														size="xx-small"
+													></lightning-icon>
 												</button>
 											</div>
-										</template>
-										<!-- End Logged Time Section -->
+										</div>
+										<div class="filter-form-group full-width">
+											<lightning-input
+												type="text"
+												name="TLG_Description__c"
+												label="Work Description"
+												value={logTimeData.TLG_Description__c}
+												onchange={handleLogFieldChange}
+												class="filter-input"
+											></lightning-input>
+										</div>
+										<div class="filter-form-group grid-2col">
+											<lightning-input
+												type="text"
+												label="Estimated Hours"
+												value={selectedTaskDetails.estimatedHours}
+												disabled
+												class="filter-input"
+											></lightning-input>
+											<lightning-input
+												type="text"
+												label="Remaining (h.mm)"
+												value={remainingEstimateDisplay}
+												formatter="number"
+												disabled
+												class="filter-input"
+												data-is-remaining
+											></lightning-input>
+										</div>
+										<div class="filter-form-group">
+											<button
+												class="filter-btn filter-btn-primary"
+												onclick={handleSubmitLogTime}
+											>
+												<lightning-icon
+													icon-name="utility:check"
+													size="xx-small"
+												></lightning-icon>
+												Log Time
+											</button>
+										</div>
+
+										<!-- Files Section -->
+										<div class="filter-section-header" style="margin-top: 1rem">
+											<lightning-icon
+												icon-name="utility:attach"
+												size="x-small"
+											></lightning-icon>
+											Attachments
+										</div>
+										<div class="task-drawer-section">
+											<!-- File Upload Area -->
+											<div class="file-upload-container">
+												<input
+													type="file"
+													class="file-input-hidden"
+													onchange={handleFileSelect}
+													accept="*"
+													data-file-input
+												/>
+												<div
+													class="file-drop-zone"
+													ondrop={handleFileDrop}
+													ondragover={handleFileDragOver}
+													ondragleave={handleFileDragLeave}
+													onclick={handleFileUploadClick}
+												>
+													<lightning-icon
+														icon-name="utility:upload"
+														size="small"
+													></lightning-icon>
+													<p class="file-drop-text">
+														Drop files here or click to browse
+													</p>
+													<p class="file-drop-hint">Maximum file size: 10MB</p>
+												</div>
+											</div>
+
+											<!-- Uploaded Files List -->
+											<template if:true={taskFiles.length}>
+												<div class="files-list">
+													<template for:each={taskFiles} for:item="file">
+														<div key={file.id} class="file-item">
+															<lightning-icon
+																icon-name={file.iconName}
+																size="small"
+																class="file-icon"
+															></lightning-icon>
+															<div class="file-details">
+																<a
+																	href={file.downloadUrl}
+																	target="_blank"
+																	class="file-name"
+																	title={file.title}
+																>
+																	{file.title}
+																</a>
+																<div class="file-meta">
+																	{file.size} • Uploaded by {file.createdBy} on
+																	{file.createdDate}
+																</div>
+															</div>
+															<button
+																class="file-delete-btn"
+																data-file-id={file.id}
+																onclick={handleDeleteFile}
+																title="Delete file"
+															>
+																<lightning-icon
+																	icon-name="utility:delete"
+																	size="xx-small"
+																></lightning-icon>
+															</button>
+														</div>
+													</template>
+												</div>
+											</template>
+											<template if:false={taskFiles.length}>
+												<div class="no-files-message">
+													No files attached yet.
+												</div>
+											</template>
+										</div>
 
 										<!-- Comments Section -->
 										<div class="filter-section-header" style="margin-top: 1rem">
@@ -1306,46 +1203,93 @@
 												size="x-small"
 											></lightning-icon>
 											Comments
-											<template if:true="{isLoadingComments}">
-												<lightning-spinner
-													alternative-text="Loading comments"
-													size="xx-small"
-													class="inline-spinner"
-												></lightning-spinner>
-											</template>
 										</div>
 										<div class="filter-form-group full-width">
 											<div class="comments-list" role="list">
-												<template if:true="{comments.length}">
-													<template for:each="{comments}" for:item="c">
+												<template if:true={comments.length}>
+													<template for:each={comments} for:item="c">
 														<div
-															key="{c.id}"
+															key={c.id}
 															class="comment-item"
 															role="listitem"
 														>
-															<div class="comment-header">
-																<span class="comment-author"
-																	>{c.createdByName}</span
-																>
-																<span class="comment-date"
-																	>{c.createdDateFormatted}</span
-																>
-															</div>
-															<div class="comment-text">{c.text}</div>
+															<template if:false={c.isEditing}>
+																<div class="comment-header">
+																	<span class="comment-author"
+																		>{c.createdByName}</span
+																	>
+																	<span class="comment-date"
+																		>{c.createdDateFormatted}</span
+																	>
+																	<div class="comment-actions-inline">
+																		<button
+																			class="comment-action-btn"
+																			data-id={c.id}
+																			onclick={handleEditComment}
+																			title="Edit comment"
+																		>
+																			<lightning-icon
+																				icon-name="utility:edit"
+																				size="xx-small"
+																			></lightning-icon>
+																		</button>
+																		<button
+																			class="comment-action-btn comment-delete-btn"
+																			data-id={c.id}
+																			onclick={handleDeleteComment}
+																			title="Delete comment"
+																		>
+																			<lightning-icon
+																				icon-name="utility:delete"
+																				size="xx-small"
+																			></lightning-icon>
+																		</button>
+																	</div>
+																</div>
+																<div class="comment-text">{c.text}</div>
+															</template>
+															<template if:true={c.isEditing}>
+																<div class="comment-header">
+																	<span class="comment-author"
+																		>{c.createdByName}</span
+																	>
+																	<span class="comment-date"
+																		>{c.createdDateFormatted}</span
+																	>
+																</div>
+																<lightning-textarea
+																	value={c.editText}
+																	data-id={c.id}
+																	onchange={handleCommentEditChange}
+																	class="comment-edit-textarea"
+																></lightning-textarea>
+																<div class="comment-edit-actions">
+																	<button
+																		class="filter-btn filter-btn-secondary"
+																		data-id={c.id}
+																		onclick={handleCancelCommentEdit}
+																	>
+																		Cancel
+																	</button>
+																	<button
+																		class="filter-btn filter-btn-primary"
+																		data-id={c.id}
+																		onclick={handleSaveCommentEdit}
+																	>
+																		<lightning-icon
+																			icon-name="utility:check"
+																			size="xx-small"
+																		></lightning-icon>
+																		Save
+																	</button>
+																</div>
+															</template>
 														</div>
 													</template>
 												</template>
-												<template if:false="{comments.length}">
-													<div class="empty-state-small">
-														<lightning-icon
-															icon-name="utility:comments"
-															size="small"
-															class="empty-icon-small"
-														></lightning-icon>
-														<p class="empty-text-small">No comments yet</p>
-														<p class="empty-hint-small">
-															Be the first to add a comment below
-														</p>
+												<template if:false={comments.length}>
+													<div class="comment-item" role="listitem">
+														<div class="comment-text">No comments yet.</div>
 													</div>
 												</template>
 											</div>
@@ -1353,8 +1297,8 @@
 											<div class="new-comment-section">
 												<lightning-input-rich-text
 													label="Add a comment"
-													value="{newCommentText}"
-													onchange="{handleNewCommentChange}"
+													value={newCommentText}
+													onchange={handleNewCommentChange}
 													style="min-height: 120px"
 													class="comment-textarea"
 												>
@@ -1362,17 +1306,16 @@
 												<div class="mention-controls">
 													<div class="mention-chips">
 														<template
-															for:each="{selectedMentions}"
+															for:each={selectedMentions}
 															for:item="m"
 														>
-															<span key="{m.userId}" class="mention-chip">
+															<span key={m.userId} class="mention-chip">
 																@{m.name}
 																<button
 																	class="chip-remove"
-																	data-id="{m.userId}"
-																	onclick="{handleRemoveMention}"
+																	data-id={m.userId}
+																	onclick={handleRemoveMention}
 																	title="Remove mention"
-																	aria-label="Remove mention"
 																>
 																	<lightning-icon
 																		icon-name="utility:close"
@@ -1386,31 +1329,31 @@
 														type="search"
 														name="mentionSearch"
 														label="Mention users (@)"
-														value="{mentionSearchText}"
-														oninput="{handleMentionInput}"
+														value={mentionSearchText}
+														oninput={handleMentionInput}
 														autocomplete="off"
 													></lightning-input>
-													<template if:true="{mentionResults.length}">
+													<template if:true={mentionResults.length}>
 														<div
 															class="lookup-dropdown"
 															role="listbox"
-															aria-busy="{isSearchingMentions}"
+															aria-busy={isSearchingMentions}
 														>
-															<template if:true="{isSearchingMentions}">
+															<template if:true={isSearchingMentions}>
 																<div class="lookup-item" role="option">
 																	Searching…
 																</div>
 															</template>
 															<template
-																for:each="{mentionResults}"
+																for:each={mentionResults}
 																for:item="opt"
 															>
 																<div
-																	key="{opt.userId}"
+																	key={opt.userId}
 																	class="lookup-item"
-																	data-id="{opt.userId}"
+																	data-id={opt.userId}
 																	role="option"
-																	onclick="{handleSelectMention}"
+																	onclick={handleSelectMention}
 																>
 																	<lightning-icon
 																		icon-name="standard:user"
@@ -1426,22 +1369,13 @@
 												<div class="comment-actions">
 													<button
 														class="post-comment-btn"
-														onclick="{handlePostComment}"
-														disabled="{isPostingComment}"
+														onclick={handlePostComment}
+														disabled={isPostingComment}
 													>
-														<template if:true="{isPostingComment}">
-															<lightning-spinner
-																alternative-text="Posting comment"
-																size="xx-small"
-																class="button-spinner"
-															></lightning-spinner>
-														</template>
-														<template if:false="{isPostingComment}">
-															<lightning-icon
-																icon-name="utility:send"
-																size="xx-small"
-															></lightning-icon>
-														</template>
+														<lightning-icon
+															icon-name="utility:send"
+															size="xx-small"
+														></lightning-icon>
 														<span>Post</span>
 													</button>
 												</div>
@@ -1451,15 +1385,137 @@
 								</div>
 							</template>
 						</template>
+
+						<!-- TIME LOG CONTENT -->
+						<template if:true={showTimeLogDrawer}>
+							<div class="filter-section">
+								<div class="filter-section-header">
+									<lightning-icon
+										icon-name="utility:clock"
+										size="x-small"
+									></lightning-icon>
+									Log Time
+								</div>
+								<div class="filter-section-content">
+									<!-- Display selected task name -->
+									<template if:true={selectedTaskDetails.Name}>
+										<div class="filter-form-group full-width">
+											<label class="filter-label">Task</label>
+											<div class="selected-task-display">
+												<lightning-icon
+													icon-name="standard:task"
+													size="small"
+												></lightning-icon>
+												<span class="task-name"
+													>{selectedTaskDetails.Name}</span
+												>
+											</div>
+										</div>
+									</template>
+									<div class="filter-form-group grid-2col">
+										<lightning-input
+											type="number"
+											name="Completion__c"
+											label="Completion (%)"
+											min="0"
+											max="100"
+											value={logTimeData.Completion__c}
+											onchange={handleLogFieldChange}
+											message-when-range-overflow="Max 100"
+											message-when-range-underflow="Min 0"
+											class="filter-input"
+										></lightning-input>
+										<lightning-input
+											type="date"
+											name="TLG_Date_Record__c"
+											label="Date"
+											value={logTimeData.TLG_Date_Record__c}
+											onchange={handleLogFieldChange}
+											class="filter-input"
+										></lightning-input>
+									</div>
+									<div class="filter-form-group">
+										<label
+											class="slds-form-element__label"
+											for="timeSpentFieldDrawer"
+											>Time Spent (h.mm)</label
+										>
+										<div class="time-stepper">
+											<button
+												class="time-btn"
+												data-dir="minus"
+												onclick={handleTimeStep}
+												type="button"
+												aria-label="Minus 15 minutes"
+											>
+												<lightning-icon
+													icon-name="utility:dash"
+													size="xx-small"
+												></lightning-icon>
+											</button>
+											<lightning-input
+												id="timeSpentFieldDrawer"
+												type="text"
+												name="TLG_Time_Spent__c"
+												value={logTimeData.TLG_Time_Spent__c}
+												onchange={handleTimeSpentChange}
+												class="filter-input"
+												style="max-width: 120px"
+											></lightning-input>
+											<button
+												class="time-btn"
+												data-dir="plus"
+												onclick={handleTimeStep}
+												type="button"
+												aria-label="Plus 15 minutes"
+											>
+												<lightning-icon
+													icon-name="utility:add"
+													size="xx-small"
+												></lightning-icon>
+											</button>
+										</div>
+									</div>
+									<div class="filter-form-group full-width">
+										<lightning-input
+											type="text"
+											name="TLG_Description__c"
+											label="Work Description"
+											value={logTimeData.TLG_Description__c}
+											onchange={handleLogFieldChange}
+											class="filter-input"
+										></lightning-input>
+									</div>
+									<div class="filter-form-group grid-2col">
+										<lightning-input
+											type="text"
+											label="Estimated Hours"
+											value={selectedTaskDetails.estimatedHours}
+											disabled
+											class="filter-input"
+										></lightning-input>
+										<lightning-input
+											type="text"
+											label="Remaining (h.mm)"
+											value={remainingEstimateDisplay}
+											formatter="number"
+											disabled
+											class="filter-input"
+											data-is-remaining
+										></lightning-input>
+									</div>
+								</div>
+							</div>
+						</template>
 					</div>
 
 					<!-- Drawer Actions -->
 					<div class="unified-drawer-actions">
 						<!-- Filter actions -->
-						<template if:true="{showFilterDrawer}">
+						<template if:true={showFilterDrawer}>
 							<button
-								class="filter-btn filter-btn-secondary slds-button slds-button_neutral"
-								onclick="{handleClearFilters}"
+								class="filter-btn filter-btn-secondary"
+								onclick={handleClearFilters}
 							>
 								<lightning-icon
 									icon-name="utility:clear"
@@ -1468,8 +1524,8 @@
 								Clear All
 							</button>
 							<button
-								class="filter-btn filter-btn-primary slds-button slds-button_brand"
-								onclick="{handleApplyFilters}"
+								class="filter-btn filter-btn-primary"
+								onclick={handleApplyFilters}
 							>
 								<lightning-icon
 									icon-name="utility:check"
@@ -1480,10 +1536,10 @@
 						</template>
 
 						<!-- New Task actions -->
-						<template if:true="{showNewTaskDrawer}">
+						<template if:true={showNewTaskDrawer}>
 							<button
-								class="filter-btn filter-btn-secondary slds-button slds-button_neutral"
-								onclick="{handleCloseDrawer}"
+								class="filter-btn filter-btn-secondary"
+								onclick={handleCloseDrawer}
 							>
 								<lightning-icon
 									icon-name="utility:close"
@@ -1492,9 +1548,9 @@
 								Cancel
 							</button>
 							<button
-								class="filter-btn filter-btn-primary slds-button slds-button_brand"
-								onclick="{handleCreateTask}"
-								disabled="{isSavingNew}"
+								class="filter-btn filter-btn-primary"
+								onclick={handleCreateTask}
+								disabled={isSavingNew}
 							>
 								<lightning-icon
 									icon-name="utility:check"
@@ -1504,11 +1560,11 @@
 							</button>
 						</template>
 
-						<!-- Task Details actions -->
-						<template if:true="{showTaskDrawer}">
+						<!-- Time Log actions -->
+						<template if:true={showTimeLogDrawer}>
 							<button
-								class="filter-btn filter-btn-secondary slds-button slds-button_neutral"
-								onclick="{handleCloseDrawer}"
+								class="filter-btn filter-btn-secondary"
+								onclick={handleCloseDrawer}
 							>
 								<lightning-icon
 									icon-name="utility:close"
@@ -1517,9 +1573,45 @@
 								Cancel
 							</button>
 							<button
-								class="filter-btn filter-btn-primary slds-button slds-button_brand"
-								onclick="{handleSaveTaskEdits}"
-								disabled="{isSavingEdit}"
+								class="filter-btn filter-btn-primary"
+								onclick={handleSubmitLogTime}
+							>
+								<lightning-icon
+									icon-name="utility:check"
+									size="xx-small"
+								></lightning-icon>
+								Log Time
+							</button>
+						</template>
+
+						<!-- Task Details actions -->
+						<template if:true={showTaskDrawer}>
+							<button
+								class="filter-btn filter-btn-danger"
+								onclick={handleDeleteTask}
+								disabled={isSavingEdit}
+								title="Delete this task"
+							>
+								<lightning-icon
+									icon-name="utility:delete"
+									size="xx-small"
+								></lightning-icon>
+								Delete
+							</button>
+							<button
+								class="filter-btn filter-btn-secondary"
+								onclick={handleCloseDrawer}
+							>
+								<lightning-icon
+									icon-name="utility:close"
+									size="xx-small"
+								></lightning-icon>
+								Cancel
+							</button>
+							<button
+								class="filter-btn filter-btn-primary"
+								onclick={handleSaveTaskEdits}
+								disabled={isSavingEdit}
 							>
 								<lightning-icon
 									icon-name="utility:check"
@@ -1535,14 +1627,14 @@
 	</div>
 
 	<!-- Task Delay Modal -->
-	<template if:true="{showDelayModal}">
+	<template if:true={showDelayModal}>
 		<section role="dialog" aria-modal="true" class="delay-modal">
 			<div class="delay-modal__content">
 				<header class="delay-modal__header">
 					<h2>Task Delay</h2>
 					<button
 						class="unified-drawer-close"
-						onclick="{closeDelayModal}"
+						onclick={closeDelayModal}
 						title="Close"
 					>
 						<lightning-icon
@@ -1557,50 +1649,50 @@
 							type="text"
 							name="Subject"
 							label="Subject"
-							value="{delayForm.Subject}"
-							onchange="{handleDelayFieldChange}"
+							value={delayForm.Subject}
+							onchange={handleDelayFieldChange}
 						></lightning-input>
 						<lightning-input
 							type="text"
 							name="AssignedToName"
 							label="Assigned To"
-							value="{delayForm.AssignedToName}"
+							value={delayForm.AssignedToName}
 							disabled
 						></lightning-input>
 						<lightning-combobox
 							name="Delay_Origin__c"
 							label="Origin"
-							value="{delayForm.Delay_Origin__c}"
-							options="{delayPicklists.origins}"
-							onchange="{handleDelayFieldChange}"
+							value={delayForm.Delay_Origin__c}
+							options={delayPicklists.origins}
+							onchange={handleDelayFieldChange}
 						></lightning-combobox>
 						<lightning-combobox
 							name="Category__c"
 							label="Category"
-							value="{delayForm.Category__c}"
-							options="{filteredDelayCategories}"
-							onchange="{handleDelayFieldChange}"
+							value={delayForm.Category__c}
+							options={filteredDelayCategories}
+							onchange={handleDelayFieldChange}
 						></lightning-combobox>
 						<lightning-combobox
 							name="Status"
 							label="Status"
-							value="{delayForm.Status}"
-							options="{delayStatusOptions}"
-							onchange="{handleDelayFieldChange}"
+							value={delayForm.Status}
+							options={delayStatusOptions}
+							onchange={handleDelayFieldChange}
 						></lightning-combobox>
 						<lightning-input
 							type="number"
 							name="Delay_Days__c"
 							label="Delay (in days)"
 							min="0"
-							value="{delayForm.Delay_Days__c}"
-							onchange="{handleDelayFieldChange}"
+							value={delayForm.Delay_Days__c}
+							onchange={handleDelayFieldChange}
 						></lightning-input>
 						<lightning-textarea
 							name="Description"
 							label="Description"
-							value="{delayForm.Description}"
-							onchange="{handleDelayFieldChange}"
+							value={delayForm.Description}
+							onchange={handleDelayFieldChange}
 							class="full-span"
 						></lightning-textarea>
 					</div>
@@ -1608,13 +1700,13 @@
 				<footer class="delay-modal__footer">
 					<button
 						class="filter-btn filter-btn-secondary"
-						onclick="{closeDelayModal}"
+						onclick={closeDelayModal}
 					>
 						Cancel
 					</button>
 					<button
 						class="filter-btn filter-btn-primary"
-						onclick="{handleDelaySave}"
+						onclick={handleDelaySave}
 					>
 						<lightning-icon
 							icon-name="utility:check"
@@ -1627,106 +1719,107 @@
 		</section>
 	</template>
 
-	<!-- Confirmation Dialog (MIN-005) -->
-	<template if:true="{showConfirmation}">
-		<section
-			role="dialog"
-			tabindex="-1"
-			aria-labelledby="confirmation-heading"
-			aria-modal="true"
-			class="slds-modal slds-fade-in-open slds-modal_small"
-		>
-			<div class="slds-modal__container">
-				<header class="slds-modal__header">
-					<h2
-						id="confirmation-heading"
-						class="slds-modal__title slds-hyphenate"
-					>
-						{confirmationConfig.title}
-					</h2>
+	<!-- Bulk Assign Modal -->
+	<template if:true={showBulkAssignModal}>
+		<section role="dialog" aria-modal="true" class="delay-modal">
+			<div class="delay-modal__content">
+				<header class="delay-modal__header">
+					<h2>Bulk Assign Tasks</h2>
+					<button class="close-btn" onclick={closeBulkAssignModal}>×</button>
 				</header>
-				<div class="slds-modal__content slds-p-around_medium">
-					<p>{confirmationConfig.message}</p>
+				<div class="delay-modal__body">
+					<p class="modal-description">
+						Assigning {selectedCount} selected task(s)
+					</p>
+					<lightning-combobox
+						name="bulkAssignUser"
+						label="Assign To"
+						value={bulkAssignUserId}
+						placeholder="Select User"
+						options={assignableUsersOptions}
+						onchange={handleBulkAssignUserChange}
+						required
+					></lightning-combobox>
 				</div>
-				<footer class="slds-modal__footer">
-					<button
-						class="slds-button slds-button_neutral"
-						onclick="{handleConfirmationCancel}"
-					>
-						{confirmationConfig.cancelLabel}
+				<footer class="delay-modal__footer">
+					<button class="cancel-btn" onclick={closeBulkAssignModal}>
+						Cancel
 					</button>
-					<button
-						class="slds-button slds-button_destructive"
-						onclick="{handleConfirmationConfirm}"
-					>
-						{confirmationConfig.confirmLabel}
+					<button class="save-btn" onclick={confirmBulkAssign}>
+						Assign Tasks
 					</button>
 				</footer>
 			</div>
 		</section>
-		<div class="slds-backdrop slds-backdrop_open"></div>
 	</template>
 
-	<!-- MAJ-005: Offline banner -->
-	<template if:true={isOfflineMode}>
-		<template if:true={showOfflineBanner}>
-			<div class="offline-banner" role="status" aria-live="polite">
-				<lightning-icon
-					icon-name="utility:offline"
-					size="x-small"
-					class="offline-icon"
-				></lightning-icon>
-				<div class="offline-content">
-					<span class="offline-text">
-						<strong>Offline Mode:</strong> You are currently offline. Changes will be saved locally and synced when connection is restored.
-					</span>
-					<template if:true={offlineQueueLength}>
-						<span class="offline-queue-count">
-							{offlineQueueLength} operation{offlineQueueLength} pending
-						</span>
-					</template>
+	<!-- Bulk Status Modal -->
+	<template if:true={showBulkStatusModal}>
+		<section role="dialog" aria-modal="true" class="delay-modal">
+			<div class="delay-modal__content">
+				<header class="delay-modal__header">
+					<h2>Bulk Update Status</h2>
+					<button class="close-btn" onclick={closeBulkStatusModal}>×</button>
+				</header>
+				<div class="delay-modal__body">
+					<p class="modal-description">
+						Updating {selectedCount} selected task(s)
+					</p>
+					<lightning-combobox
+						name="bulkStatus"
+						label="New Status"
+						value={bulkStatusValue}
+						placeholder="Select Status"
+						options={statusOptions}
+						onchange={handleBulkStatusValueChange}
+						required
+					></lightning-combobox>
 				</div>
-				<div class="offline-actions">
-					<template if:true={offlineQueueLength}>
-						<button
-							class="slds-button slds-button_brand offline-sync-btn"
-							onclick={handleSyncOfflineQueue}
-							title="Sync pending operations"
-						>
-							<lightning-icon
-								icon-name="utility:sync"
-								size="x-small"
-							></lightning-icon>
-							Sync
-						</button>
-					</template>
-					<button
-						class="slds-button slds-button_icon offline-close-btn"
-						onclick={handleDismissOfflineBanner}
-						title="Dismiss offline banner"
-					>
-						<lightning-icon
-							icon-name="utility:close"
-							size="x-small"
-						></lightning-icon>
-						<span class="slds-assistive-text">Dismiss</span>
+				<footer class="delay-modal__footer">
+					<button class="cancel-btn" onclick={closeBulkStatusModal}>
+						Cancel
 					</button>
-				</div>
+					<button class="save-btn" onclick={confirmBulkStatus}>
+						Update Status
+					</button>
+				</footer>
 			</div>
-		</template>
+		</section>
 	</template>
 
-	<!-- UX-002: Undo banner -->
-	<template if:true={showUndoBanner}>
-		<div class="undo-banner" role="status" aria-live="polite">
-			<span class="undo-text">{undoMessage}</span>
-			<button
-				class="slds-button slds-button_neutral undo-btn"
-				onclick={handleUndoLastMove}
-				title="Undo last move"
-			>
-				Undo
-			</button>
-		</div>
+	<!-- Bulk Priority Modal -->
+	<template if:true={showBulkPriorityModal}>
+		<section role="dialog" aria-modal="true" class="delay-modal">
+			<div class="delay-modal__content">
+				<header class="delay-modal__header">
+					<h2>Bulk Update Priority</h2>
+					<button class="close-btn" onclick={closeBulkPriorityModal}>
+						×
+					</button>
+				</header>
+				<div class="delay-modal__body">
+					<p class="modal-description">
+						Updating {selectedCount} selected task(s)
+					</p>
+					<lightning-combobox
+						name="bulkPriority"
+						label="New Priority"
+						value={bulkPriorityValue}
+						placeholder="Select Priority"
+						options={priorityOptions}
+						onchange={handleBulkPriorityValueChange}
+						required
+					></lightning-combobox>
+				</div>
+				<footer class="delay-modal__footer">
+					<button class="cancel-btn" onclick={closeBulkPriorityModal}>
+						Cancel
+					</button>
+					<button class="save-btn" onclick={confirmBulkPriority}>
+						Update Priority
+					</button>
+				</footer>
+			</div>
+		</section>
 	</template>
 </template>

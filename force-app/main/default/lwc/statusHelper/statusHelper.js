@@ -14,11 +14,17 @@ export const VALID_STATUSES = [
 	"In Progress",
 	"Ready for Review",
 	"Waiting on Client",
-	"On hold",
+	"On Hold",
 	"Reopened",
 	"Completed",
 	"Closed",
 	"Cancelled",
+	"QA",
+	"Pending",
+	"Testing",
+	"Deployed",
+	"Backlog",
+	"Done",
 ];
 
 /**
@@ -69,24 +75,4 @@ export function isValidStatus(status) {
  */
 export function getStatusLabel(status) {
 	return normalizeStatusValue(status);
-}
-
-/**
- * Normalize status value to lowercase for consistent map key generation
- * This ensures case-insensitive matching for status comparisons
- * @param {string} statusName - Raw status value
- * @returns {string} Normalized lowercase status value
- */
-export function normalizeStatusKey(statusName) {
-	return normalizeStatusValue(statusName).toLowerCase();
-}
-
-/**
- * Compare two status values for equality (case-insensitive)
- * @param {string} status1 - First status to compare
- * @param {string} status2 - Second status to compare
- * @returns {boolean} True if statuses are equivalent
- */
-export function statusEquals(status1, status2) {
-	return normalizeStatusKey(status1) === normalizeStatusKey(status2);
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TLG_Card_Gradient_Light_Top__c</fullName>
+    <description>Top color for card gradient in light theme (hex code)</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Enter a hex color code for the top of the card gradient in light theme (e.g., #ffffff for white)</inlineHelpText>
+    <label>Card Gradient Light Top</label>
+    <length>7</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

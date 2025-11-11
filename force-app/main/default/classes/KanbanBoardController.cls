@@ -34,6 +34,10 @@ public with sharing class KanbanBoardController {
     @AuraEnabled public String collapsedColorEnd;
     @AuraEnabled public Integer displayOrder;
     @AuraEnabled public Integer maxExpandedColumns;
+    @AuraEnabled public String cardGradientLightTop;
+    @AuraEnabled public String cardGradientLightBottom;
+    @AuraEnabled public String cardGradientDarkTop;
+    @AuraEnabled public String cardGradientDarkBottom;
   }
 
   // No local error helper; use shared AuraErrorUtil.throwAuraOrIllegal for consistency
@@ -222,7 +226,11 @@ public with sharing class KanbanBoardController {
           TLG_Collapsed_Color_Start__c,
           TLG_Collapsed_Color_End__c,
           TLG_Display_Order__c,
-          TLG_Max_Expanded_Columns__c
+          TLG_Max_Expanded_Columns__c,
+          TLG_Card_Gradient_Light_Top__c,
+          TLG_Card_Gradient_Light_Bottom__c,
+          TLG_Card_Gradient_Dark_Top__c,
+          TLG_Card_Gradient_Dark_Bottom__c
         FROM TLG_Kanban_Board_Config__c
         WHERE TLG_Is_Active__c = true
         ORDER BY TLG_Display_Order__c ASC NULLS LAST, TLG_Status_Name__c ASC
@@ -238,6 +246,10 @@ public with sharing class KanbanBoardController {
         colorConfig.maxExpandedColumns = config.TLG_Max_Expanded_Columns__c != null
           ? config.TLG_Max_Expanded_Columns__c.intValue()
           : null;
+        colorConfig.cardGradientLightTop = config.TLG_Card_Gradient_Light_Top__c;
+        colorConfig.cardGradientLightBottom = config.TLG_Card_Gradient_Light_Bottom__c;
+        colorConfig.cardGradientDarkTop = config.TLG_Card_Gradient_Dark_Top__c;
+        colorConfig.cardGradientDarkBottom = config.TLG_Card_Gradient_Dark_Bottom__c;
         configs.add(colorConfig);
       }
 
@@ -526,6 +538,7 @@ public with sharing class KanbanBoardController {
   //   return TaskCommentService.searchInternalUsersForTagging(searchTerm);
   // }
 
+  @AuraEnabled
   public static TaskCommentService.CommentDetails updateTaskComment(String commentId, String newCommentText) {
     return TaskCommentService.updateTaskComment(commentId, newCommentText);
   }

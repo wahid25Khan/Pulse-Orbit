@@ -2,6 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TLG_Collapsed_Columns__c</fullName>
     <description>Stores the comma-separated list of collapsed column status names for kanban board user preferences</description>
+    <externalId>false</externalId>
     <label>Collapsed Columns</label>
     <length>32768</length>
     <trackFeedHistory>false</trackFeedHistory>

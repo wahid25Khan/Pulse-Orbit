@@ -12,8 +12,10 @@ public class KanbanBoardControllerTest {
     insert testCases;
 
     // Create test Opportunity (for project-related methods)
-    Opportunity opp = new Opportunity(Name = 'Test Project', StageName = 'Prospecting', CloseDate = Date.today().addDays(30));
-    insert opp;
+    List<Opportunity> opps = new List<Opportunity>();
+    opps.add(new Opportunity(Name = 'High Priority Project', StageName = 'Prospecting', CloseDate = Date.today().addDays(30), Probability = 90));
+    opps.add(new Opportunity(Name = 'Test Search Project', StageName = 'Negotiation', CloseDate = Date.today().addDays(60), Probability = 50));
+    insert opps;
   }
 
   // ========================================
@@ -133,6 +135,88 @@ public class KanbanBoardControllerTest {
       System.assert(e.getMessage().contains('cannot be empty'), 'Should throw empty data error');
     }
     Test.stopTest();
+  }
+
+  // ========================================
+  // PROJECT OPERATION TESTS
+  // ========================================
+
+  @IsTest
+  static void testGetHighPriorityProjects() {
+    Test.startTest();
+    List<Opportunity> projects = KanbanBoardController.getHighPriorityProjects();
+    Test.stopTest();
+    System.assertNotEquals(null, projects, 'Should return projects list');
+  }
+
+  @IsTest
+  static void testSearchOpportunities() {
+    Test.startTest();
+    List<Opportunity> results = KanbanBoardController.searchOpportunities('Search');
+    Test.stopTest();
+    System.assertNotEquals(null, results, 'Should return search results');
+  }
+
+  @IsTest
+  static void testGetProjects() {
+    Test.startTest();
+    List<Opportunity> projects = KanbanBoardController.getProjects();
+    Test.stopTest();
+    System.assertNotEquals(null, projects, 'Should return all projects');
+    System.assert(projects.size() >= 2, 'Should return at least 2 projects');
+  }
+
+  // ========================================
+  // USER OPERATION TESTS
+  // ========================================
+
+  @IsTest
+  static void testGetAssignableUsers() {
+    Test.startTest();
+    List<KanbanBoardController.UserOption> users = KanbanBoardController.getAssignableUsers();
+    Test.stopTest();
+    System.assertNotEquals(null, users, 'Should return users list');
+    System.assert(users.size() > 0, 'Should return at least one user');
+  }
+
+  @IsTest
+  static void testGetCurrentUserId() {
+    Test.startTest();
+    Id userId = KanbanBoardController.getCurrentUserId();
+    Test.stopTest();
+    System.assertEquals(UserInfo.getUserId(), userId, 'Should return current user ID');
+  }
+
+  @IsTest
+  static void testGetCurrentUserContext() {
+    Test.startTest();
+    KanbanBoardController.CurrentUserContext context = KanbanBoardController.getCurrentUserContext();
+    Test.stopTest();
+    System.assertNotEquals(null, context, 'Should return user context');
+    System.assertEquals(UserInfo.getUserId(), context.userId, 'User ID should match');
+    System.assertNotEquals(null, context.userType, 'User type should be set');
+    System.assertNotEquals(null, context.isPortalUser, 'Portal user flag should be set');
+  }
+
+  // ========================================
+  // CASE SEARCH TESTS
+  // ========================================
+
+  @IsTest
+  static void testSearchCases() {
+    Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
+    Test.startTest();
+    List<Case> results = KanbanBoardController.searchCases('Test', opp.Id);
+    Test.stopTest();
+    System.assertNotEquals(null, results, 'Should return search results');
+  }
+
+  @IsTest
+  static void testSearchCases_NullTerm() {
+    Test.startTest();
+    List<Case> results = KanbanBoardController.searchCases('', null);
+    Test.stopTest();
+    System.assertNotEquals(null, results, 'Should return results with empty search');
   }
 
   /*

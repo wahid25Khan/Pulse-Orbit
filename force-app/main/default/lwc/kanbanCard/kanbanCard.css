@@ -9,7 +9,7 @@
     cursor: grab;
     user-select: none;
     transition: transform 120ms ease, box-shadow 120ms ease;
-    background: linear-gradient(145deg, #ff8a3d, #5824ff);
+    background: linear-gradient(180deg, #f5f5dc 0%, #8b4513 100%);
 }
 
 .kanban-card:active {
@@ -17,22 +17,22 @@
 }
 
 .kanban-card.dark-theme {
-    background: linear-gradient(150deg, #ff7a2f, #1e1b4b);
+    background: linear-gradient(180deg, #deb887 0%, #654321 100%);
 }
 
 .kanban-card.light-theme {
-    background: var(--kanban-card-light-gradient, linear-gradient(140deg, #ffffff, #f5e6d3, #e6c896));
+    background: linear-gradient(180deg, #ffffff 0%, #a0826d 100%);
 }
 
 .kanban-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(139, 99, 46, 0.15);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
 }
 
 .card-sheen {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 20% 20%, rgba(255, 252, 245, 0.35), transparent 60%);
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25), transparent 60%);
     pointer-events: none;
 }
 
@@ -50,8 +50,8 @@
 }
 
 .light-theme .card-inner {
-    background: linear-gradient(155deg, rgba(255, 253, 248, 0.95), rgba(250, 244, 233, 0.75));
-    color: #3d2f1f;
+    background: linear-gradient(155deg, rgba(254, 249, 231, 0.92), rgba(253, 246, 227, 0.85));
+    color: #0f172a;
 }
 
 .card-top {
@@ -84,13 +84,6 @@
     --sds-c-icon-color-foreground-default: currentColor;
 }
 
-.status-chip {
-    min-width: 80px;
-    justify-content: center;
-    text-align: center;
-    font-weight: 500;
-}
-
 .priority-chip {
     cursor: default;
     background: rgba(255, 255, 255, 0.08);
@@ -116,23 +109,23 @@
 }
 
 .light-theme .chip {
-    background: rgba(200, 153, 96, 0.15);
-    color: #3d2f1f;
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
 }
 
 .light-theme .priority-chip.priority-high {
-    background: rgba(201, 124, 99, 0.92);
+    background: rgba(220, 38, 38, 0.92);
     color: #fff;
 }
 
 .light-theme .priority-chip.priority-medium {
-    background: rgba(122, 158, 92, 0.92);
-    color: #1f2912;
+    background: rgba(16, 185, 129, 0.92);
+    color: #022c22;
 }
 
 .light-theme .priority-chip.priority-low {
-    background: rgba(230, 200, 150, 0.92);
-    color: #5c4a2e;
+    background: rgba(250, 204, 21, 0.92);
+    color: #78350f;
 }
 
 .circle-btn {
@@ -149,7 +142,7 @@
 }
 
 .light-theme .circle-btn {
-    background: rgba(212, 165, 116, 0.18);
+    background: rgba(37, 99, 235, 0.12);
 }
 
 .circle-btn:hover {
@@ -197,25 +190,14 @@
 }
 
 .light-theme .card-text {
-    color: #6b5640;
+    color: #475569;
 }
 
 .card-bottom {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: auto;
-}
-
-.card-timer-section {
-    width: 100%;
-}
-
-.card-bottom-row {
-    display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
+    margin-top: auto;
 }
 
 .avatar-stack {
@@ -255,13 +237,49 @@
 }
 
 .light-theme .avatar {
-    background: rgba(212, 165, 116, 0.18);
-    color: #3d2f1f;
+    background: rgba(37, 99, 235, 0.12);
+    color: #0f172a;
 }
 
 .avatar.placeholder {
     font-size: 1rem;
     opacity: 0.6;
+}
+
+.time-log-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(59, 130, 246, 0.3));
+    color: #60a5fa;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    margin-left: auto;
+}
+
+.time-log-btn:hover {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(59, 130, 246, 0.4));
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.time-log-btn:active {
+    transform: scale(0.95);
+}
+
+.light-theme .time-log-btn {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.25));
+    color: #2563eb;
+}
+
+.light-theme .time-log-btn:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.35));
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .timeline-dots {
@@ -285,9 +303,37 @@
 }
 
 .light-theme .nav-dot {
-    background: rgba(212, 165, 116, 0.3);
+    background: rgba(37, 99, 235, 0.25);
 }
 
 .light-theme .nav-dot.active {
-    background: #c89960;
+    background: #0f172a;
+}
+
+/* Bulk Selection Checkbox */
+.bulk-checkbox-container {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    padding: 4px;
+    backdrop-filter: blur(8px);
+}
+
+.bulk-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.bulk-checkbox:hover {
+    transform: scale(1.1);
+}
+
+.light-theme .bulk-checkbox-container {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }

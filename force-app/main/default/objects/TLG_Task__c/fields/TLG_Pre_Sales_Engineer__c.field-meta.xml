@@ -2,6 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TLG_Pre_Sales_Engineer__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
+    <externalId>false</externalId>
     <label>Pre Sales Engineer</label>
     <referenceTo>Portal_Users__c</referenceTo>
     <relationshipLabel>Tasks (Pre Sales Engineer)</relationshipLabel>

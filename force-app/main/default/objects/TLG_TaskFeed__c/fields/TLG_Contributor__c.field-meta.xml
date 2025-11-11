@@ -2,6 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TLG_Contributor__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
+    <externalId>false</externalId>
     <label>Contributor</label>
     <referenceTo>Portal_Users__c</referenceTo>
     <relationshipLabel>TaskFeeds</relationshipLabel>

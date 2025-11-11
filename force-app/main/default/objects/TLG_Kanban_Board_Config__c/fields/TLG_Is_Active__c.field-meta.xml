@@ -3,6 +3,7 @@
     <fullName>TLG_Is_Active__c</fullName>
     <defaultValue>true</defaultValue>
     <description>Indicates if this status configuration is active</description>
+    <externalId>false</externalId>
     <label>Is Active</label>
     <trackHistory>true</trackHistory>
     <trackTrending>false</trackTrending>

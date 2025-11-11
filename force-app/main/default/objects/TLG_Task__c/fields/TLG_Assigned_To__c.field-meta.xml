@@ -3,6 +3,7 @@
     <fullName>TLG_Assigned_To__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>User assigned to the task</description>
+    <externalId>false</externalId>
     <label>Assigned To</label>
     <referenceTo>User</referenceTo>
     <relationshipName>Tasks_Assigned_To</relationshipName>

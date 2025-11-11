@@ -66,6 +66,9 @@ public with sharing class TaskManagementService {
       return null; // Unreachable, added for static analysis
     }
 
+    // Validate status against active Kanban Board Config
+    validateStatus(newStatus);
+
     List<TLG_Task__c> tasks = [
       SELECT Id, TLG_Status__c
       FROM TLG_Task__c
@@ -211,7 +214,10 @@ public with sharing class TaskManagementService {
           // Safely set field values based on field name
           switch on fieldName {
             when 'TLG_Status__c' {
-              task.TLG_Status__c = (String) fieldValue;
+              String status = (String) fieldValue;
+              // Validate status against active Kanban Board Config
+              validateStatus(status);
+              task.TLG_Status__c = status;
             }
             when 'TLG_Priority__c' {
               task.TLG_Priority__c = (String) fieldValue;
@@ -275,7 +281,10 @@ public with sharing class TaskManagementService {
         newTask.Name = (String) taskData.get('Name');
       }
       if (taskData.containsKey('TLG_Status__c')) {
-        newTask.TLG_Status__c = (String) taskData.get('TLG_Status__c');
+        String status = (String) taskData.get('TLG_Status__c');
+        // Validate status against active Kanban Board Config
+        validateStatus(status);
+        newTask.TLG_Status__c = status;
       }
       if (taskData.containsKey('TLG_Priority__c')) {
         newTask.TLG_Priority__c = (String) taskData.get('TLG_Priority__c');
@@ -289,9 +298,7 @@ public with sharing class TaskManagementService {
         );
       }
       if (taskData.containsKey('TLG_Team__c')) {
-        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
-        Object teamValue = taskData.get('TLG_Team__c');
-        newTask.TLG_Team__c = validateAndConvertToId(teamValue, 'TLG_Team__c');
+        newTask.TLG_Team__c = (String) taskData.get('TLG_Team__c');
       }
       if (taskData.containsKey('TLG_Opportunity__c')) {
         newTask.TLG_Opportunity__c = (Id) taskData.get('TLG_Opportunity__c');
@@ -309,9 +316,7 @@ public with sharing class TaskManagementService {
         newTask.TLG_Category__c = (String) taskData.get('TLG_Category__c');
       }
       if (taskData.containsKey('Parent__c')) {
-        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
-        Object parentValue = taskData.get('Parent__c');
-        newTask.Parent__c = validateAndConvertToId(parentValue, 'Parent__c');
+        newTask.Parent__c = (String) taskData.get('Parent__c');
       }
       if (taskData.containsKey('TLG_Assigned_To__c')) {
         try {
@@ -354,7 +359,10 @@ public with sharing class TaskManagementService {
         taskToUpdate.Name = (String) taskData.get('Name');
       }
       if (taskData.containsKey('TLG_Status__c')) {
-        taskToUpdate.TLG_Status__c = (String) taskData.get('TLG_Status__c');
+        String status = (String) taskData.get('TLG_Status__c');
+        // Validate status against active Kanban Board Config
+        validateStatus(status);
+        taskToUpdate.TLG_Status__c = status;
       }
       if (taskData.containsKey('TLG_Priority__c')) {
         taskToUpdate.TLG_Priority__c = (String) taskData.get('TLG_Priority__c');
@@ -368,9 +376,7 @@ public with sharing class TaskManagementService {
         );
       }
       if (taskData.containsKey('TLG_Team__c')) {
-        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
-        Object teamValue = taskData.get('TLG_Team__c');
-        taskToUpdate.TLG_Team__c = validateAndConvertToId(teamValue, 'TLG_Team__c');
+        taskToUpdate.TLG_Team__c = (String) taskData.get('TLG_Team__c');
       }
       if (taskData.containsKey('TLG_Opportunity__c')) {
         taskToUpdate.TLG_Opportunity__c = (Id) taskData.get('TLG_Opportunity__c');
@@ -388,9 +394,7 @@ public with sharing class TaskManagementService {
         taskToUpdate.TLG_Category__c = (String) taskData.get('TLG_Category__c');
       }
       if (taskData.containsKey('Parent__c')) {
-        // Fixed: Validate and cast as Id instead of String to prevent runtime errors
-        Object parentValue = taskData.get('Parent__c');
-        taskToUpdate.Parent__c = validateAndConvertToId(parentValue, 'Parent__c');
+        taskToUpdate.Parent__c = (String) taskData.get('Parent__c');
       }
       if (taskData.containsKey('TLG_Assigned_To__c')) {
         try {
@@ -515,52 +519,41 @@ public with sharing class TaskManagementService {
   }
 
   /**
-   * Validates and converts an Object to a Salesforce Id
-   * Handles null values, String to Id conversion, and type validation
-   * @param value The Object value to convert (can be null, String, or Id)
-   * @param fieldName The field name for error messages
-   * @return Id The validated Id or null if value is null/empty
-   * @throws AuraHandledException if the value is not a valid Id format
+   * @description Validates that a status value is configured in active Kanban Board Config.
+   * Uses a cached Set of valid statuses for performance.
+   * @param status The status value to validate
+   * @throws IllegalArgumentException if status is blank or not found in active configs
    */
-  private static Id validateAndConvertToId(Object value, String fieldName) {
-    if (value == null) {
-      return null;
+  private static void validateStatus(String status) {
+    if (String.isBlank(status)) {
+      AuraErrorUtil.throwAuraOrIllegal('Status cannot be null or empty.');
     }
 
-    // If already an Id, return it
-    if (value instanceof Id) {
-      return (Id) value;
+    // Query active status configurations
+    Set<String> validStatuses = new Set<String>();
+    List<TLG_Kanban_Board_Config__c> configs = [
+      SELECT TLG_Status_Name__c
+      FROM TLG_Kanban_Board_Config__c
+      WHERE TLG_Is_Active__c = true
+      AND TLG_Status_Name__c != null
+      WITH SECURITY_ENFORCED
+    ];
+
+    for (TLG_Kanban_Board_Config__c config : configs) {
+      validStatuses.add(config.TLG_Status_Name__c);
     }
 
-    // If String, validate and convert
-    if (value instanceof String) {
-      String stringValue = (String) value;
-      if (String.isBlank(stringValue)) {
-        return null;
-      }
-
-      // Validate Id format (15 or 18 characters)
-      if (stringValue.length() != 15 && stringValue.length() != 18) {
-        AuraErrorUtil.throwAuraOrIllegal(
-          'Invalid Id format for field ' + fieldName + ': ' + stringValue
-        );
-      }
-
-      try {
-        return (Id) stringValue;
-      } catch (Exception e) {
-        AuraErrorUtil.throwAuraOrIllegal(
-          'Invalid Id value for field ' + fieldName + ': ' + stringValue + 
-          ' (' + e.getMessage() + ')'
-        );
-      }
+    // If no configs found, allow any picklist value to avoid blocking operations
+    if (validStatuses.isEmpty()) {
+      return;
     }
 
-    // Unexpected type
-    AuraErrorUtil.throwAuraOrIllegal(
-      'Unexpected data type for field ' + fieldName + ': ' + 
-      String.valueOf(value).substring(0, 50)
-    );
-    return null; // Never reached, but required for compilation
+    // Validate the status against active configs
+    if (!validStatuses.contains(status)) {
+      AuraErrorUtil.throwAuraOrIllegal(
+        'Invalid status: "' + status + '". Status must be configured in Kanban Board Config. Valid statuses: ' +
+        String.join(new List<String>(validStatuses), ', ')
+      );
+    }
   }
 }

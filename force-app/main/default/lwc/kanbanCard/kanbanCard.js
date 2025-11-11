@@ -3,6 +3,8 @@ import { LightningElement, api } from "lwc";
 export default class KanbanCard extends LightningElement {
 	@api issue; // normalized card object from kanbanBoard
 	@api isDarkMode = false;
+	@api isBulkMode = false;
+	@api isSelected = false;
 
 	get issueId() {
 		return this.issue?.Id || this.issue?.id || "";
@@ -74,10 +76,29 @@ export default class KanbanCard extends LightningElement {
 	}
 
 	get detailBody() {
-		return (
+		let description =
 			this.displayDescription ||
 			this.issue?.notes ||
-			"Add more context so teammates know what to tackle next."
+			"Add more context so teammates know what to tackle next.";
+
+		// Strip HTML tags to prevent rendering issues
+		if (description && typeof description === "string") {
+			// Remove HTML tags
+			description = description.replace(/<[^>]*>/g, "");
+			// Decode HTML entities
+			description = description
+				.replace(/&nbsp;/g, " ")
+				.replace(/&amp;/g, "&")
+				.replace(/&lt;/g, "<")
+				.replace(/&gt;/g, ">")
+				.replace(/&quot;/g, '"')
+				.replace(/&#39;/g, "'");
+			// Trim whitespace
+			description = description.trim();
+		}
+
+		return (
+			description || "Add more context so teammates know what to tackle next."
 		);
 	}
 
@@ -124,21 +145,14 @@ export default class KanbanCard extends LightningElement {
 	}
 
 	get assigneeList() {
-		const people = new Map(); // Use Map to avoid duplicates by ID/name
-
-		// Add assigned users
-		const rawAssignees = Array.isArray(this.issue?.assignees)
+		const rawList = Array.isArray(this.issue?.assignees)
 			? this.issue.assignees
 			: [];
 		const fallbackName = this.issue?.assignedToName || this.issue?.assignedTo;
 
-		const assigneeList = rawAssignees.length
-			? rawAssignees
-			: fallbackName
-			? [fallbackName]
-			: [];
+		const list = rawList.length ? rawList : fallbackName ? [fallbackName] : [];
 
-		assigneeList.forEach((item, index) => {
+		return list.slice(0, 3).map((item, index) => {
 			const normalized = typeof item === "string" ? { name: item } : item || {};
 			const name =
 				normalized.name ||
@@ -146,57 +160,20 @@ export default class KanbanCard extends LightningElement {
 				normalized.label ||
 				fallbackName ||
 				"Unassigned";
-			const id = normalized.Id || normalized.id || `assignee-${name}-${index}`;
+			const photo =
+				normalized.photoUrl ||
+				normalized.avatarUrl ||
+				normalized.imageUrl ||
+				normalized.photo;
 
-			if (!people.has(id)) {
-				people.set(id, {
-					key: id,
-					name,
-					initials: this.buildInitials(name),
-					photo:
-						normalized.photoUrl ||
-						normalized.avatarUrl ||
-						normalized.imageUrl ||
-						normalized.photo ||
-						"",
-					hasPhoto: Boolean(
-						normalized.photoUrl ||
-							normalized.avatarUrl ||
-							normalized.imageUrl ||
-							normalized.photo
-					),
-					role: "assignee",
-				});
-			}
+			return {
+				key: `assignee-${index}`,
+				name,
+				initials: this.buildInitials(name),
+				photo: photo || "",
+				hasPhoto: Boolean(photo),
+			};
 		});
-
-		// Add contributors from taskFeed
-		const taskFeeds = Array.isArray(this.issue?.taskFeeds)
-			? this.issue.taskFeeds
-			: [];
-		taskFeeds.forEach((feed, index) => {
-			const contributorName = feed.createdByName || feed.CreatedBy?.Name;
-			const contributorId =
-				feed.CreatedById ||
-				feed.CreatedBy?.Id ||
-				`contributor-${contributorName}-${index}`;
-
-			if (contributorName && contributorId && !people.has(contributorId)) {
-				people.set(contributorId, {
-					key: contributorId,
-					name: contributorName,
-					initials: this.buildInitials(contributorName),
-					photo: feed.CreatedBy?.SmallPhotoUrl || feed.createdByPhoto || "",
-					hasPhoto: Boolean(
-						feed.CreatedBy?.SmallPhotoUrl || feed.createdByPhoto
-					),
-					role: "contributor",
-				});
-			}
-		});
-
-		// Return first 3 people (assignees prioritized first)
-		return Array.from(people.values()).slice(0, 3);
 	}
 
 	get hasAssignees() {
@@ -243,6 +220,23 @@ export default class KanbanCard extends LightningElement {
 		// No-op: parent is already listening to onclick on <c-kanban-card>
 	}
 
+	handleLogTime(event) {
+		event.stopPropagation();
+		event.preventDefault();
+		this.dispatchEvent(
+			new CustomEvent("timelogrequest", {
+				detail: { taskId: this.issueId },
+				bubbles: true,
+				composed: true,
+			})
+		);
+	}
+
+	handleStopPropagation(event) {
+		event.stopPropagation();
+		event.preventDefault();
+	}
+
 	handleTimeLogClick(event) {
 		event.stopPropagation();
 		this.dispatchEvent(
@@ -254,17 +248,15 @@ export default class KanbanCard extends LightningElement {
 		);
 	}
 
-	handleTimerLogTime(event) {
+	handleCheckboxChange(event) {
 		event.stopPropagation();
-		// Forward timer log event to parent with timer data
+		const isSelected = event.target.checked;
+
 		this.dispatchEvent(
-			new CustomEvent("timerlogtime", {
+			new CustomEvent("selectionchange", {
 				detail: {
-					taskId: event.detail.taskId,
-					taskName: event.detail.taskName,
-					elapsedHours: event.detail.elapsedHours,
-					elapsedSeconds: event.detail.elapsedSeconds,
-					formattedTime: event.detail.formattedTime,
+					taskId: this.issueId,
+					isSelected: isSelected,
 				},
 				bubbles: true,
 				composed: true,

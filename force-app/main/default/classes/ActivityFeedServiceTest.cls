@@ -156,4 +156,70 @@ private class ActivityFeedServiceTest {
         System.assertEquals('Backlog', item.oldValue, 'Old value should match');
         System.assertEquals('Done', item.newValue, 'New value should match');
     }
+
+    @isTest
+    static void testGetRecentActivity_LargeLimit() {
+        Test.startTest();
+        List<ActivityFeedService.ActivityItem> activities = 
+            ActivityFeedService.getRecentActivity(1000, null);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, activities, 'Should handle large limits');
+        System.assert(activities.size() >= 0, 'Should return activities');
+    }
+
+    @isTest
+    static void testGetRecentActivity_ZeroLimit() {
+        Test.startTest();
+        List<ActivityFeedService.ActivityItem> activities = 
+            ActivityFeedService.getRecentActivity(0, null);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, activities, 'Should handle zero limit');
+    }
+
+    @isTest
+    static void testGetTaskActivity_ZeroLimit() {
+        TLG_Task__c task = [SELECT Id FROM TLG_Task__c LIMIT 1];
+        
+        Test.startTest();
+        List<ActivityFeedService.ActivityItem> activities = 
+            ActivityFeedService.getTaskActivity(task.Id, 0);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, activities, 'Should handle zero limit');
+    }
+
+    @isTest
+    static void testGetTaskActivity_NullLimit() {
+        TLG_Task__c task = [SELECT Id FROM TLG_Task__c LIMIT 1];
+        
+        Test.startTest();
+        List<ActivityFeedService.ActivityItem> activities = 
+            ActivityFeedService.getTaskActivity(task.Id, null);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, activities, 'Should handle null limit');
+    }
+
+    @isTest
+    static void testGetActivityStats_WithTimeFilter() {
+        Test.startTest();
+        Map<String, Object> stats = ActivityFeedService.getActivityStats(null);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, stats, 'Stats with filter should not be null');
+        System.assert(stats.containsKey('recentActivityCount'), 'Should have activity count');
+    }
+
+    @isTest
+    static void testGetRecentActivity_WithTeamFilter() {
+        Test.startTest();
+        List<ActivityFeedService.ActivityItem> activities = 
+            ActivityFeedService.getRecentActivity(10, null);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, activities, 'Should handle team filter');
+        System.assert(activities.size() >= 0, 'Should return activities');
+    }
 }

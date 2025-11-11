@@ -1,158 +1,375 @@
 <template>
-    <lightning-card title="Kanban Config Manager" icon-name="utility:settings">
-        <div class="slds-p-horizontal_medium slds-p-vertical_small">
-            <!-- Configs toolbar -->
-            <div class="slds-m-bottom_small slds-grid slds-grid_align-spread">
-                <div>
-                    <lightning-button label="Refresh Configs" variant="neutral" onclick={handleRefresh}
-                        disabled={isLoading}></lightning-button>
-                </div>
-                <div>
-                    <lightning-button label="Add Config" variant="neutral" onclick={handleAddRow} disabled={isLoading}
-                        class="slds-m-right_x-small"></lightning-button>
-                    <lightning-button label="Save Configs" variant="brand" onclick={handleSaveAll}
-                        disabled={isLoading}></lightning-button>
-                </div>
-            </div>
-            <div class="slds-scrollable_x">
-                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
-                    <thead>
-                        <tr>
-                            <th scope="col">
-                                <div class="slds-truncate">Status Name</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Color</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Display Order</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Active</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Max Expanded Columns</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Actions</div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template if:true={configs}>
-                            <template for:each={configs} for:item="conf" for:index="index">
-                                <tr key={conf.key}>
-                                    <td>
-                                        <lightning-input type="text" value={conf.TLG_Status_Name__c} data-index={index}
-                                            data-field="TLG_Status_Name__c" onchange={handleInput}></lightning-input>
-                                    </td>
-                                    <td>
-                                        <div class="color-cell">
-                                            <lightning-input type="text" class="hex" value={conf.TLG_Color_Code__c}
-                                                data-index={index} data-field="TLG_Color_Code__c"
-                                                onchange={handleInput}></lightning-input>
-                                            <input class="picker" type="color" value={conf.TLG_Color_Code__c}
-                                                data-index={index} data-field="TLG_Color_Code__c"
-                                                oninput={handleNativeColor} />
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="number" value={conf.TLG_Display_Order__c}
-                                            data-index={index} data-field="TLG_Display_Order__c"
-                                            onchange={handleNumber}></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="checkbox" checked={conf.TLG_Is_Active__c}
-                                            data-index={index} data-field="TLG_Is_Active__c"
-                                            onchange={handleCheckbox}></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="number" value={conf.TLG_Max_Expanded_Columns__c}
-                                            data-index={index} data-field="TLG_Max_Expanded_Columns__c"
-                                            onchange={handleNumber}></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
-                                            title="Delete" data-index={index} onclick={handleDelete}
-                                            disabled={isLoading}></lightning-button-icon>
-                                    </td>
-                                </tr>
-                            </template>
-                        </template>
-                        <template if:false={configs}>
-                            <tr>
-                                <td colspan="6">No records</td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
+	<lightning-card title="Kanban Config Manager" icon-name="utility:settings">
+		<div class="slds-p-horizontal_medium slds-p-vertical_small">
+			<!-- Configs toolbar -->
+			<div class="slds-m-bottom_small slds-grid slds-grid_align-spread">
+				<div>
+					<lightning-button
+						label="Refresh Configs"
+						variant="neutral"
+						onclick={handleRefresh}
+						disabled={isLoading}
+					></lightning-button>
+				</div>
+				<div>
+					<lightning-button
+						label="Add Config"
+						variant="neutral"
+						onclick={handleAddRow}
+						disabled={isLoading}
+						class="slds-m-right_x-small"
+					></lightning-button>
+					<lightning-button
+						label="Save Configs"
+						variant="brand"
+						onclick={handleSaveAll}
+						disabled={isLoading}
+					></lightning-button>
+				</div>
+			</div>
+			<div class="slds-scrollable_x">
+				<table
+					class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered"
+				>
+					<thead>
+						<tr>
+							<th scope="col">
+								<div class="slds-truncate">Status Name</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Color</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Display Order</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Active</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Max Expanded Columns</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Card Light Top</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Card Light Bottom</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Card Dark Top</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Card Dark Bottom</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Collapsed Start</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Collapsed End</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Actions</div>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<template if:true={configs}>
+							<template for:each={configs} for:item="conf" for:index="index">
+								<tr key={conf.key}>
+									<td>
+										<lightning-input
+											type="text"
+											value={conf.TLG_Status_Name__c}
+											data-index={index}
+											data-field="TLG_Status_Name__c"
+											onchange={handleInput}
+										></lightning-input>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Color_Code__c}
+												data-index={index}
+												data-field="TLG_Color_Code__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Color_Code__c}
+												data-index={index}
+												data-field="TLG_Color_Code__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<lightning-input
+											type="number"
+											value={conf.TLG_Display_Order__c}
+											data-index={index}
+											data-field="TLG_Display_Order__c"
+											onchange={handleNumber}
+										></lightning-input>
+									</td>
+									<td>
+										<lightning-input
+											type="checkbox"
+											checked={conf.TLG_Is_Active__c}
+											data-index={index}
+											data-field="TLG_Is_Active__c"
+											onchange={handleCheckbox}
+										></lightning-input>
+									</td>
+									<td>
+										<lightning-input
+											type="number"
+											value={conf.TLG_Max_Expanded_Columns__c}
+											data-index={index}
+											data-field="TLG_Max_Expanded_Columns__c"
+											onchange={handleNumber}
+										></lightning-input>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Card_Gradient_Light_Top__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Light_Top__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Card_Gradient_Light_Top__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Light_Top__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Card_Gradient_Light_Bottom__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Light_Bottom__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Card_Gradient_Light_Bottom__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Light_Bottom__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Card_Gradient_Dark_Top__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Dark_Top__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Card_Gradient_Dark_Top__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Dark_Top__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Card_Gradient_Dark_Bottom__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Dark_Bottom__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Card_Gradient_Dark_Bottom__c}
+												data-index={index}
+												data-field="TLG_Card_Gradient_Dark_Bottom__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Collapsed_Color_Start__c}
+												data-index={index}
+												data-field="TLG_Collapsed_Color_Start__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Collapsed_Color_Start__c}
+												data-index={index}
+												data-field="TLG_Collapsed_Color_Start__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<div class="color-cell">
+											<lightning-input
+												type="text"
+												class="hex"
+												value={conf.TLG_Collapsed_Color_End__c}
+												data-index={index}
+												data-field="TLG_Collapsed_Color_End__c"
+												onchange={handleInput}
+											></lightning-input>
+											<input
+												class="picker"
+												type="color"
+												value={conf.TLG_Collapsed_Color_End__c}
+												data-index={index}
+												data-field="TLG_Collapsed_Color_End__c"
+												oninput={handleNativeColor}
+											/>
+										</div>
+									</td>
+									<td>
+										<lightning-button-icon
+											icon-name="utility:delete"
+											alternative-text="Delete"
+											title="Delete"
+											data-index={index}
+											onclick={handleDelete}
+											disabled={isLoading}
+										></lightning-button-icon>
+									</td>
+								</tr>
+							</template>
+						</template>
+						<template if:false={configs}>
+							<tr>
+								<td colspan="10">No records</td>
+							</tr>
+						</template>
+					</tbody>
+				</table>
+			</div>
 
-            <hr class="slds-m-vertical_medium" />
+			<hr class="slds-m-vertical_medium" />
 
-            <!-- Team Status toolbar -->
-            <div class="slds-m-bottom_small slds-grid slds-grid_align-spread">
-                <div>
-                    <lightning-button label="Refresh Statuses" variant="neutral" onclick={handleRefreshStatuses}
-                        disabled={isLoading}></lightning-button>
-                </div>
-                <div>
-                    <lightning-button label="Add Status" variant="neutral" onclick={handleAddStatusRow}
-                        disabled={isLoading} class="slds-m-right_x-small"></lightning-button>
-                    <lightning-button label="Save Statuses" variant="brand" onclick={handleSaveStatuses}
-                        disabled={isLoading}></lightning-button>
-                </div>
-            </div>
-            <div class="slds-scrollable_x">
-                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
-                    <thead>
-                        <tr>
-                            <th scope="col">
-                                <div class="slds-truncate">Status Name</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Column Order</div>
-                            </th>
-                            <th scope="col">
-                                <div class="slds-truncate">Actions</div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template if:true={statuses}>
-                            <template for:each={statuses} for:item="st" for:index="sindex">
-                                <tr key={st.key}>
-                                    <td>
-                                        <lightning-input type="text" value={st.Name} data-scope="status"
-                                            data-index={sindex} data-field="Name"
-                                            onchange={handleInput}></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-input type="number" value={st.TLG_Order_Number__c}
-                                            data-scope="status" data-index={sindex} data-field="TLG_Order_Number__c"
-                                            onchange={handleNumber}></lightning-input>
-                                    </td>
-                                    <td>
-                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
-                                            title="Delete" data-scope="status" data-index={sindex}
-                                            onclick={handleDelete} disabled={isLoading}></lightning-button-icon>
-                                    </td>
-                                </tr>
-                            </template>
-                        </template>
-                        <template if:false={statuses}>
-                            <tr>
-                                <td colspan="3">No records</td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <template if:true={isLoading}>
-            <div class="slds-is-relative slds-p-around_medium">
-                <lightning-spinner alternative-text="Loading"></lightning-spinner>
-            </div>
-        </template>
-    </lightning-card>
+			<!-- Team Status toolbar -->
+			<div class="slds-m-bottom_small slds-grid slds-grid_align-spread">
+				<div>
+					<lightning-button
+						label="Refresh Statuses"
+						variant="neutral"
+						onclick={handleRefreshStatuses}
+						disabled={isLoading}
+					></lightning-button>
+				</div>
+				<div>
+					<lightning-button
+						label="Add Status"
+						variant="neutral"
+						onclick={handleAddStatusRow}
+						disabled={isLoading}
+						class="slds-m-right_x-small"
+					></lightning-button>
+					<lightning-button
+						label="Save Statuses"
+						variant="brand"
+						onclick={handleSaveStatuses}
+						disabled={isLoading}
+					></lightning-button>
+				</div>
+			</div>
+			<div class="slds-scrollable_x">
+				<table
+					class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered"
+				>
+					<thead>
+						<tr>
+							<th scope="col">
+								<div class="slds-truncate">Status Name</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Column Order</div>
+							</th>
+							<th scope="col">
+								<div class="slds-truncate">Actions</div>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<template if:true={statuses}>
+							<template for:each={statuses} for:item="st" for:index="sindex">
+								<tr key={st.key}>
+									<td>
+										<lightning-input
+											type="text"
+											value={st.Name}
+											data-scope="status"
+											data-index={sindex}
+											data-field="Name"
+											onchange={handleInput}
+										></lightning-input>
+									</td>
+									<td>
+										<lightning-input
+											type="number"
+											value={st.TLG_Order_Number__c}
+											data-scope="status"
+											data-index={sindex}
+											data-field="TLG_Order_Number__c"
+											onchange={handleNumber}
+										></lightning-input>
+									</td>
+									<td>
+										<lightning-button-icon
+											icon-name="utility:delete"
+											alternative-text="Delete"
+											title="Delete"
+											data-scope="status"
+											data-index={sindex}
+											onclick={handleDelete}
+											disabled={isLoading}
+										></lightning-button-icon>
+									</td>
+								</tr>
+							</template>
+						</template>
+						<template if:false={statuses}>
+							<tr>
+								<td colspan="3">No records</td>
+							</tr>
+						</template>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<template if:true={isLoading}>
+			<div class="slds-is-relative slds-p-around_medium">
+				<lightning-spinner alternative-text="Loading"></lightning-spinner>
+			</div>
+		</template>
+	</lightning-card>
 </template>
+
